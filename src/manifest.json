@@ -43,6 +43,12 @@
       },
       "pages/test": {
         "component": "saveTest"
+      },
+      "pages/map": {
+        "component": "map"
+      },
+      "pages/responsive-test": {
+        "component": "responsive-test"
       }
     }
   }

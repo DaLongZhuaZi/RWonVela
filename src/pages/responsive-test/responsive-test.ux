@@ -1,0 +1,252 @@
+<template>
+  <div class="test-page">
+    <!-- 设备信息显示 -->
+    <div class="device-info" style="{{ responsiveStyles.deviceInfo }}">
+      <text class="info-title">设备信息</text>
+      <text class="info-text">设备尺寸: {{ deviceInfo.deviceSize }}</text>
+      <text class="info-text">基准尺寸: {{ deviceInfo.baseSize }}</text>
+      <text class="info-text">缩放比例: {{ deviceInfo.scale.toFixed(3) }}</text>
+      <text class="info-text">安全区域: {{ deviceInfo.safeArea.width.toFixed(0) }}x{{ deviceInfo.safeArea.height.toFixed(0) }}</text>
+      <text class="info-text">是否方形屏: {{ deviceInfo.isSquareScreen ? '是' : '否' }}</text>
+    </div>
+    
+    <!-- 分辨率切换测试 -->
+    <div class="resolution-test" style="{{ responsiveStyles.resolutionTest }}">
+      <text class="section-title">分辨率测试</text>
+      <div class="resolution-buttons">
+        <input class="test-btn" style="{{ responsiveStyles.testBtn }}" type="button" value="466x466" onclick="setTestResolution" data-width="466" data-height="466" />
+        <input class="test-btn" style="{{ responsiveStyles.testBtn }}" type="button" value="454x454" onclick="setTestResolution" data-width="454" data-height="454" />
+        <input class="test-btn" style="{{ responsiveStyles.testBtn }}" type="button" value="480x480" onclick="setTestResolution" data-width="480" data-height="480" />
+        <input class="test-btn" style="{{ responsiveStyles.testBtn }}" type="button" value="390x390" onclick="setTestResolution" data-width="390" data-height="390" />
+      </div>
+    </div>
+    
+    <!-- 组件尺寸预览 -->
+    <div class="component-preview" style="{{ responsiveStyles.componentPreview }}">
+      <text class="section-title">组件尺寸预览</text>
+      
+      <!-- 状态栏预览 -->
+      <div class="preview-item">
+        <text class="preview-label">状态栏:</text>
+        <div class="status-bar-preview" style="{{ responsiveStyles.statusBarPreview }}">
+          <text class="preview-text" style="{{ responsiveStyles.previewText }}">状态栏示例</text>
+        </div>
+      </div>
+      
+      <!-- 地图容器预览 -->
+      <div class="preview-item">
+        <text class="preview-label">地图容器:</text>
+        <div class="map-preview" style="{{ responsiveStyles.mapPreview }}">
+          <text class="preview-text" style="{{ responsiveStyles.previewText }}">地图区域 ({{ mapSize.width }}x{{ mapSize.height }})</text>
+          <text class="preview-text" style="{{ responsiveStyles.previewText }}">缩放: {{ mapSize.scale.toFixed(3) }}</text>
+        </div>
+      </div>
+      
+      <!-- 导航按钮预览 -->
+      <div class="preview-item">
+        <text class="preview-label">导航按钮:</text>
+        <input class="nav-btn-preview" style="{{ responsiveStyles.navBtnPreview }}" type="button" value="按钮示例" />
+      </div>
+    </div>
+    
+    <!-- 返回按钮 -->
+    <div class="back-section" style="{{ responsiveStyles.backSection }}">
+      <input class="back-btn" style="{{ responsiveStyles.backBtn }}" type="button" value="返回游戏" onclick="goBack" />
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import responsiveManager from "../../common/responsiveManager.js"
+
+export default {
+  private: {
+    responsiveStyles: {},
+    deviceInfo: {},
+    mapSize: {}
+  },
+  
+  onInit() {
+    console.log('📱 响应式测试页面初始化...')
+    this.initResponsiveTest()
+  },
+  
+  // 初始化响应式测试
+  initResponsiveTest() {
+    try {
+      // 获取设备信息
+      this.deviceInfo = responsiveManager.getDeviceInfo()
+      
+      // 获取地图尺寸信息
+      this.mapSize = responsiveManager.calculateMapContainerSize()
+      
+      // 获取响应式样式
+      this.responsiveStyles = {
+        deviceInfo: {
+          padding: `${responsiveManager.getResponsiveSize(10)}px`,
+          margin: `${responsiveManager.getResponsiveSize(5)}px`,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          borderRadius: `${responsiveManager.getResponsiveSize(8)}px`,
+          border: '1px solid #8B4513'
+        },
+        
+        resolutionTest: {
+          padding: `${responsiveManager.getResponsiveSize(10)}px`,
+          margin: `${responsiveManager.getResponsiveSize(5)}px`,
+          backgroundColor: 'rgba(139, 69, 19, 0.3)',
+          borderRadius: `${responsiveManager.getResponsiveSize(8)}px`
+        },
+        
+        componentPreview: {
+          padding: `${responsiveManager.getResponsiveSize(10)}px`,
+          margin: `${responsiveManager.getResponsiveSize(5)}px`,
+          backgroundColor: 'rgba(0,0,0,0.6)',
+          borderRadius: `${responsiveManager.getResponsiveSize(8)}px`
+        },
+        
+        testBtn: {
+          width: `${responsiveManager.getResponsiveSize(80)}px`,
+          height: `${responsiveManager.getResponsiveSize(30)}px`,
+          fontSize: `${responsiveManager.getResponsiveFontSize(10)}px`,
+          margin: `${responsiveManager.getResponsiveSize(2)}px`,
+          borderRadius: `${responsiveManager.getResponsiveSize(5)}px`,
+          backgroundColor: '#4682B4',
+          color: '#ffffff',
+          border: '1px solid #4169E1'
+        },
+        
+        statusBarPreview: {
+          height: `${responsiveManager.getResponsiveSize(40)}px`,
+          backgroundColor: 'rgba(0,0,0,0.9)',
+          borderRadius: `${responsiveManager.getResponsiveSize(5)}px`,
+          padding: `${responsiveManager.getResponsiveSize(5)}px`,
+          margin: `${responsiveManager.getResponsiveSize(2)}px 0`
+        },
+        
+        mapPreview: {
+          width: `${this.mapSize.width}px`,
+          height: `${this.mapSize.height}px`,
+          backgroundColor: 'rgba(139, 69, 19, 0.5)',
+          border: '2px solid #8B4513',
+          borderRadius: `${responsiveManager.getResponsiveSize(8)}px`,
+          padding: `${responsiveManager.getResponsiveSize(5)}px`,
+          margin: `${responsiveManager.getResponsiveSize(2)}px 0`,
+          alignItems: 'center',
+          justifyContent: 'center'
+        },
+        
+        navBtnPreview: {
+          width: `${responsiveManager.getResponsiveSize(75)}px`,
+          height: `${responsiveManager.getResponsiveSize(32)}px`,
+          fontSize: `${responsiveManager.getResponsiveFontSize(11)}px`,
+          borderRadius: `${responsiveManager.getResponsiveSize(15)}px`,
+          backgroundColor: 'rgba(139, 69, 19, 0.8)',
+          color: '#ffffff',
+          border: '1px solid #8B4513',
+          margin: `${responsiveManager.getResponsiveSize(2)}px 0`
+        },
+        
+        previewText: {
+          fontSize: `${responsiveManager.getResponsiveFontSize(10)}px`,
+          color: '#ffffff',
+          textAlign: 'center'
+        },
+        
+        backSection: {
+          padding: `${responsiveManager.getResponsiveSize(15)}px`,
+          alignItems: 'center',
+          justifyContent: 'center'
+        },
+        
+        backBtn: {
+          width: `${responsiveManager.getResponsiveSize(120)}px`,
+          height: `${responsiveManager.getResponsiveSize(40)}px`,
+          fontSize: `${responsiveManager.getResponsiveFontSize(14)}px`,
+          borderRadius: `${responsiveManager.getResponsiveSize(20)}px`,
+          backgroundColor: '#32CD32',
+          color: '#ffffff',
+          border: '1px solid #228B22'
+        }
+      }
+      
+      console.log('✅ 响应式测试初始化完成:', {
+        设备信息: this.deviceInfo,
+        地图尺寸: this.mapSize
+      })
+      
+    } catch (error) {
+      console.error('❌ 响应式测试初始化失败:', error)
+    }
+  },
+  
+  // 设置测试分辨率
+  setTestResolution(event) {
+    try {
+      const width = parseInt(event.target.dataset.width)
+      const height = parseInt(event.target.dataset.height)
+      
+      console.log(`🔄 切换测试分辨率: ${width}x${height}`)
+      
+      // 更新响应式管理器的设备尺寸
+      responsiveManager.deviceWidth = width
+      responsiveManager.deviceHeight = height
+      responsiveManager.calculateScale()
+      responsiveManager.calculateSafeArea()
+      
+      // 重新初始化响应式测试
+      this.initResponsiveTest()
+      
+    } catch (error) {
+      console.error('❌ 设置测试分辨率失败:', error)
+    }
+  },
+  
+  // 返回游戏页面
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.test-page {
+  flex-direction: column;
+  background-color: #2c2c2c;
+  width: 100%;
+  height: 100%;
+  padding: 5px;
+}
+
+.info-title, .section-title {
+  font-size: 14px;
+  color: #FFD700;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-align: center;
+}
+
+.info-text, .preview-label {
+  font-size: 11px;
+  color: #ffffff;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.resolution-buttons {
+  flex-direction: row;
+  justify-content: space-around;
+  flex-wrap: wrap;
+  padding: 5px;
+}
+
+.preview-item {
+  flex-direction: column;
+  margin-bottom: 8px;
+  align-items: center;
+}
+
+.preview-label {
+  margin-bottom: 3px;
+}
+</style>

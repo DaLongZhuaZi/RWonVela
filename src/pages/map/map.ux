@@ -1,0 +1,587 @@
+<template>
+  <div class="map-container">
+    <!-- 调试信息：地图容器 -->
+    <text class="debug-info" show="{{ showDebugInfo }}">当前是地图容器(map-container)</text>
+    
+    <!-- 地图渲染状态指示器 -->
+    <div class="map-status-indicator">
+      <!-- 调试信息：状态指示器 -->
+      <text class="debug-info" show="{{ showDebugInfo }}">当前是地图状态指示器(map-status-indicator)</text>
+      <text class="map-status-text">地图状态: {{ (terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0) ? '已加载' : '未加载' }}</text>
+      <text class="map-info-text" show="{{ terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0 && terrainGrid[0] }}">{{ terrainGrid.length }}x{{ terrainGrid[0].length }} 网格</text>
+      <text class="player-status-text">玩家: ({{ playerPosition.x }},{{ playerPosition.y }})</text>
+      
+      <!-- 详细调试信息 -->
+      <text class="debug-info" show="{{ showDebugInfo }}">terrainGrid类型: {{ typeof terrainGrid }}</text>
+      <text class="debug-info" show="{{ showDebugInfo }}">是否数组: {{ Array.isArray(terrainGrid) ? '是' : '否' }}</text>
+      <text class="debug-info" show="{{ showDebugInfo }}">数组长度: {{ terrainGrid ? terrainGrid.length : '无' }}</text>
+    </div>
+    
+    <!-- 10x10地形网格显示 -->
+    <div class="terrain-grid" show="{{ terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0 }}">
+      <!-- 调试信息：地形网格 -->
+      <text class="debug-info" show="{{ showDebugInfo }}">当前是地形网格(terrain-grid)</text>
+      <text class="debug-info" show="{{ showDebugInfo }}">网格显示条件: {{ (terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0) ? '满足' : '不满足' }}</text>
+      <text class="debug-info" show="{{ showDebugInfo }}">网格数据: {{ terrainGrid ? '存在' : '不存在' }}</text>
+      <div class="terrain-row" for="{{(row, rowIndex) in terrainGrid}}" show="{{ row && Array.isArray(row) }}">
+          <!-- 调试信息：地形行 -->
+          <text class="debug-info" show="{{ showDebugInfo }}">当前是地形行{{ rowIndex }}(terrain-row)</text>
+          <text class="debug-info" show="{{ showDebugInfo }}">行{{ rowIndex }}数据: {{ row ? '存在' : '不存在' }}, 类型: {{ typeof row }}, 长度: {{ row ? row.length : 0 }}</text>
+          <div class="terrain-tile-container" for="{{(tile, colIndex) in row}}" show="{{ tile }}">
+            <!-- 调试信息：地形瓦片容器 -->
+            <text class="debug-info" show="{{ showDebugInfo }}">当前是地形瓦片容器{{ rowIndex }}-{{ colIndex }}(terrain-tile-container)</text>
+            <text class="debug-info" show="{{ showDebugInfo }}">瓦片[{{ rowIndex }}][{{ colIndex }}]: {{ tile ? tile.biome : '无数据' }}</text>
+          
+          <!-- 地形背景 -->
+            <text class="debug-info" show="{{ showDebugInfo }}">背景图片: {{ getBiomePath(tile.biome) }}</text>
+            <image class="terrain-tile-bg" src="{{ getBiomePath(tile.biome) }}" onerror="handleImageError"></image>
+            <!-- 地形特征 -->
+            <text class="debug-info" show="{{ showDebugInfo && tile.hill }}">地形图片: {{ getHillPath(tile.hill) }}</text>
+            <image class="terrain-tile-hill" show="{{ tile.hill && tile.hill !== '' }}" src="{{ getHillPath(tile.hill) }}" onerror="handleImageError"></image>
+            <!-- 地形物体 -->
+            <text class="debug-info" show="{{ showDebugInfo && tile.object }}">物体图片: {{ getObjectPath(tile.object) }}</text>
+            <image class="terrain-tile-object" show="{{ tile.object && tile.object !== '' }}" src="{{ getObjectPath(tile.object) }}" onerror="handleImageError"></image>
+          
+          <!-- 调试文字标识和渲染验证 -->
+          <text class="terrain-debug-text">{{ rowIndex }},{{ colIndex }}</text>
+          <text class="terrain-biome-text">{{ tile.biome || 'N/A' }}</text>
+          <text class="terrain-hill-text" show="{{ tile.hill }}">{{ tile.hill }}</text>
+          
+          <!-- 玩家角色显示（仅在玩家位置显示） -->
+          <div class="player-character" show="{{ playerPosition.x === colIndex && playerPosition.y === rowIndex }}">
+            <!-- 调试信息：玩家角色 -->
+            <text class="debug-info" show="{{ showDebugInfo }}">当前是玩家角色(player-character)</text>
+            <image class="player-body" src="{{ characterPaths.body }}" onerror="handleImageError"></image>
+            <image class="player-head" show="{{ characterPaths.head && characterPaths.head !== '' }}" src="{{ characterPaths.head }}" onerror="handleImageError"></image>
+            <image class="player-hair" show="{{ characterPaths.hair && characterPaths.hair !== '' }}" src="{{ characterPaths.hair }}" onerror="handleImageError"></image>
+            <image class="player-beard" show="{{ characterPaths.beard && characterPaths.beard !== '' }}" src="{{ characterPaths.beard }}" onerror="handleImageError"></image>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 当前位置详细信息显示 -->
+    <div class="terrain-info-panel">
+      <!-- 调试信息：地形信息面板 -->
+      <text class="debug-info" show="{{ showDebugInfo }}">当前是地形信息面板(terrain-info-panel)</text>
+      <text class="terrain-info-text">{{ getCurrentTileInfo() }}</text>
+      <text class="player-name-text">{{ (colonistData || currentCharacter).name || '角色' }}</text>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      terrainGrid: [],
+      playerPosition: { x: 2, y: 2 },
+      characterPaths: {
+        body: 'common/human/bodies/Naked_Male_south.png',
+        head: 'common/human/heads/Male/Male_Average_Normal_south.png',
+        hair: 'common/human/hairs/Decent_south.png',
+        beard: 'common/human/beards/BeardMoustache_south.png'
+      },
+      colonistData: null,
+      currentCharacter: null,
+      currentTileInfo: {
+        biome: 'TemperateForest',
+        hill: null,
+        object: null
+      },
+      showDebugInfo: true
+    }
+  },
+  
+  onInit() {
+    // 尝试从父组件获取数据
+    this.syncWithParentData()
+    
+    // 如果没有数据，则初始化默认地形数据
+    if (!this.terrainGrid || this.terrainGrid.length === 0) {
+      this.initializeTerrainGrid()
+    }
+    
+    // 调试输出：验证terrainGrid数据传递
+    console.log('🔍 Map组件初始化 - terrainGrid调试信息:', {
+      terrainGrid存在: !!this.terrainGrid,
+      terrainGrid类型: typeof this.terrainGrid,
+      是否数组: Array.isArray(this.terrainGrid),
+      数组长度: this.terrainGrid ? this.terrainGrid.length : 0,
+      第一行长度: this.terrainGrid && this.terrainGrid[0] ? this.terrainGrid[0].length : 0,
+      showDebugInfo: this.showDebugInfo
+    })
+    
+    // 验证条件渲染逻辑
+    const terrainGridValid = this.terrainGrid && Array.isArray(this.terrainGrid) && this.terrainGrid.length > 0
+    console.log('🔍 地形网格显示条件验证:', {
+      条件1_terrainGrid存在: !!this.terrainGrid,
+      条件2_是数组: Array.isArray(this.terrainGrid),
+      条件3_长度大于0: this.terrainGrid ? this.terrainGrid.length > 0 : false,
+      最终显示条件: terrainGridValid
+    })
+    
+    // 验证每行数据
+    if (this.terrainGrid && Array.isArray(this.terrainGrid)) {
+      for (let i = 0; i < this.terrainGrid.length; i++) {
+        const row = this.terrainGrid[i]
+        console.log(`🔍 第${i}行数据验证:`, {
+          行存在: !!row,
+          行类型: typeof row,
+          是否数组: Array.isArray(row),
+          行长度: row ? row.length : 0,
+          显示条件: row && Array.isArray(row)
+        })
+        
+        // 验证每个瓦片数据
+        if (row && Array.isArray(row)) {
+          for (let j = 0; j < Math.min(row.length, 3); j++) { // 只检查前3个瓦片避免日志过多
+            const tile = row[j]
+            console.log(`🔍 瓦片[${i}][${j}]数据验证:`, {
+              瓦片存在: !!tile,
+              瓦片类型: typeof tile,
+              生物群系: tile ? tile.biome : null,
+              地形特征: tile ? tile.hill : null,
+              地形物体: tile ? tile.object : null,
+              显示条件: !!tile
+            })
+          }
+        }
+      }
+    }
+  },
+  
+  methods: {
+    // 从父组件同步数据
+    syncWithParentData() {
+      try {
+        // 尝试从父组件获取数据
+        if (this.$parent) {
+          console.log('🔍 尝试从父组件获取数据...')
+          
+          if (this.$parent.terrainGrid && Array.isArray(this.$parent.terrainGrid) && this.$parent.terrainGrid.length > 0) {
+            this.terrainGrid = this.$parent.terrainGrid
+            console.log('✅ 从父组件获取terrainGrid成功')
+          }
+          
+          if (this.$parent.playerPosition) {
+            this.playerPosition = this.$parent.playerPosition
+            console.log('✅ 从父组件获取playerPosition成功')
+          }
+          
+          if (this.$parent.characterPaths) {
+            this.characterPaths = this.$parent.characterPaths
+            console.log('✅ 从父组件获取characterPaths成功')
+          }
+          
+          if (this.$parent.colonistData) {
+            this.colonistData = this.$parent.colonistData
+            console.log('✅ 从父组件获取colonistData成功')
+          }
+          
+          if (this.$parent.currentCharacter) {
+            this.currentCharacter = this.$parent.currentCharacter
+            console.log('✅ 从父组件获取currentCharacter成功')
+          }
+          
+          if (this.$parent.currentTileInfo) {
+            this.currentTileInfo = this.$parent.currentTileInfo
+            console.log('✅ 从父组件获取currentTileInfo成功')
+          }
+          
+          if (typeof this.$parent.showDebugInfo !== 'undefined') {
+            this.showDebugInfo = this.$parent.showDebugInfo
+            console.log('✅ 从父组件获取showDebugInfo成功')
+          }
+        } else {
+          console.log('⚠️ 无法访问父组件，使用默认数据')
+        }
+      } catch (error) {
+        console.log('❌ 从父组件获取数据失败:', error.message)
+      }
+    },
+    
+    // 初始化地形网格数据
+    initializeTerrainGrid() {
+      const biomes = ['TemperateForest', 'BorealForest', 'TropicalRainforest', 'AridShrubland', 'Desert']
+      const hills = [null, 'SmallHills', 'LargeHills', 'Mountains']
+      const objects = [null, null, null, 'Town', 'AncientRoad'] // 大部分为空，少数有物体
+      
+      this.terrainGrid = []
+      for (let i = 0; i < 5; i++) {
+        const row = []
+        for (let j = 0; j < 5; j++) {
+          const tile = {
+            biome: biomes[Math.floor(Math.random() * biomes.length)],
+            hill: hills[Math.floor(Math.random() * hills.length)],
+            object: objects[Math.floor(Math.random() * objects.length)]
+          }
+          row.push(tile)
+        }
+        this.terrainGrid.push(row)
+      }
+      
+      console.log('🔍 地形网格初始化完成:', {
+        网格大小: `${this.terrainGrid.length}x${this.terrainGrid[0].length}`,
+        样本数据: this.terrainGrid[0][0]
+      })
+    },
+    
+    // 获取生物群系图片路径
+    getBiomePath(biome) {
+      const biomeMap = {
+        'TemperateForest': 'common/world/Biomes/TemperateForest.png',
+        'BorealForest': 'common/world/Biomes/BorealForest.png',
+        'TropicalRainforest': 'common/world/Biomes/TropicalRainforest.png',
+        'TropicalSwamp': 'common/world/Biomes/TropicalSwamp.png',
+        'AridShrubland': 'common/world/Biomes/AridShrubland.png',
+        'Desert': 'common/world/Biomes/Desert.png',
+        'ExtremeDesert': 'common/world/Biomes/ExtremeDesert.png',
+        'Tundra': 'common/world/Biomes/Tundra.png',
+        'IceSheet': 'common/world/Biomes/IceSheet.png',
+        'SeaIce': 'common/world/Biomes/IceSheet.png'
+      }
+      const path = biomeMap[biome] || 'common/world/Biomes/TemperateForest.png'
+      console.log('🔍 获取生物群系图片路径:', { biome, path })
+      return path
+    },
+    
+    // 获取地形特征图片路径
+    getHillPath(hill) {
+      const hillMap = {
+        'SmallHills': 'common/world/Hills/SmallHills.png',
+        'LargeHills': 'common/world/Hills/LargeHills.png',
+        'Mountains': 'common/world/Hills/Mountains.png',
+        'ImpassableMountains': 'common/world/Hills/Impassable.png'
+      }
+      const path = hillMap[hill] || null
+      if (path) {
+        console.log('🔍 获取地形特征图片路径:', { hill, path })
+      }
+      return path
+    },
+    
+    // 获取地形物体图片路径
+    getObjectPath(object) {
+      const objectMap = {
+        'AncientRoad': 'common/world/WorldObjects/DefaultSettlement.png', // 使用可用的图片
+        'AbandonedSettlement': 'common/world/WorldObjects/DefaultSettlement.png',
+        'ShrineOfNature': 'common/world/WorldObjects/DefaultSettlement.png',
+        'Town': 'common/world/WorldObjects/Town.png',
+        'Ambush': 'common/world/WorldObjects/Ambush.png',
+        'Mechanoids': 'common/world/WorldObjects/Mechanoids.png'
+      }
+      const path = objectMap[object] || null
+      if (path) {
+        console.log('🔍 获取地形物体图片路径:', { object, path })
+      }
+      return path
+    },
+    
+    // 获取当前地块信息
+    getCurrentTileInfo() {
+      if (!this.currentTileInfo) {
+        return '位置信息不可用'
+      }
+      
+      let info = `生物群系: ${this.currentTileInfo.biome || '未知'}`
+      if (this.currentTileInfo.hill) {
+        info += ` | 地形: ${this.currentTileInfo.hill}`
+      }
+      if (this.currentTileInfo.object) {
+        info += ` | 地标: ${this.currentTileInfo.object}`
+      }
+      return info
+    },
+    
+    // 处理图片加载错误
+    handleImageError(event) {
+      try {
+        if (!event || !event.target) {
+          console.log('⚠️ 图片加载错误：事件对象为空')
+          return
+        }
+        
+        const imageSrc = event.target.src || '未知路径'
+        const imageClass = event.target.className || '未知类型'
+        
+        console.log('❌ 地图组件图片加载失败:', {
+          路径: imageSrc,
+          类型: imageClass,
+          错误时间: new Date().toLocaleTimeString(),
+          完整路径: window.location.origin + '/' + imageSrc
+        })
+        
+        // 检查图片类型并提供详细信息
+        if (imageClass.includes('terrain-tile-bg')) {
+          console.log('🔍 地形背景图片加载失败，检查biomes目录')
+        } else if (imageClass.includes('terrain-tile-hill')) {
+          console.log('🔍 地形特征图片加载失败，检查hills目录')
+        } else if (imageClass.includes('terrain-tile-object')) {
+          console.log('🔍 地形物体图片加载失败，检查objects目录')
+        }
+        
+        // 如果是人物模型图片加载失败，尝试使用默认图片
+        if (imageSrc.includes('/common/human/')) {
+          if (imageClass === 'player-body') {
+            event.target.src = 'common/human/bodies/Naked_Male_south.png'
+          } else if (imageClass === 'player-head') {
+            event.target.src = 'common/human/heads/Male/Male_Average_Normal_south.png'
+          }
+        }
+      } catch (error) {
+        console.log('❌ 地图组件handleImageError函数执行异常:', error.message)
+      }
+    }
+  }
+}
+</script>
+
+<style>
+.map-container {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background-color: transparent;
+}
+
+/* 地图状态指示器 - 固定在容器顶部 */
+.map-status-indicator {
+  position: absolute;
+  top: 3px;
+  left: 5px;
+  right: 5px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid #FFD700;
+  border-radius: 3px;
+  max-height: 30px;
+  overflow: hidden;
+}
+
+.map-status-text {
+  color: #FFD700;
+  font-size: 10px;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 1px;
+  line-height: 10px;
+}
+
+.map-info-text {
+  color: #ffffff;
+  font-size: 8px;
+  text-align: center;
+  margin-bottom: 1px;
+  line-height: 8px;
+}
+
+.player-status-text {
+  color: #00ff00;
+  font-size: 8px;
+  text-align: center;
+  line-height: 8px;
+}
+
+/* 地形信息面板 - 固定在地形网格下方 */
+.terrain-info-panel {
+  position: absolute;
+  bottom: 5px;
+  left: 5px;
+  right: 5px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border: 1px solid #8B4513;
+  border-radius: 3px;
+  max-height: 40px;
+  overflow: hidden;
+}
+
+.terrain-info-text {
+  color: #ffffff;
+  font-size: 10px;
+  text-align: center;
+  margin-bottom: 1px;
+  line-height: 10px;
+}
+
+.player-name-text {
+  color: #ffdd44;
+  font-size: 11px;
+  font-weight: bold;
+  text-align: center;
+  line-height: 11px;
+}
+
+/* 地形网格 - CSS Grid自适应布局 */
+.terrain-grid {
+  position: absolute;
+  top: 35px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+  gap: 1px;
+  background-color: transparent;
+  padding: 5px;
+  margin: 0 auto;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+.terrain-row {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+}
+
+.terrain-tile-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  border: 1px solid rgba(139, 69, 19, 0.3);
+  aspect-ratio: 1;
+}
+
+.terrain-tile-bg {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.terrain-tile-hill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.terrain-tile-object {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.terrain-debug-text {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  color: red;
+  font-size: 8px;
+  font-weight: bold;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 2px;
+  border-radius: 1px;
+  line-height: 8px;
+}
+
+.terrain-biome-text {
+  position: absolute;
+  bottom: 1px;
+  left: 1px;
+  color: blue;
+  font-size: 6px;
+  font-weight: bold;
+  text-align: left;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 2px;
+  border-radius: 1px;
+  line-height: 6px;
+}
+
+.terrain-hill-text {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  color: green;
+  font-size: 6px;
+  font-weight: bold;
+  text-align: right;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 1px 2px;
+  border-radius: 1px;
+  line-height: 6px;
+}
+
+.player-character {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.player-body {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-head {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-hair {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.player-beard {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+/* 调试信息样式 */
+.debug-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #FF0000;
+  font-size: 10px;
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+</style>

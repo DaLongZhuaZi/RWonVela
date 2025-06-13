@@ -40,7 +40,7 @@ const WORLD_OBJECTS = [
 ]
 
 // 地形网格大小
-const GRID_SIZE = 5 // 5x5网格
+const GRID_SIZE = 10 // 10x10网格
 const TILE_SIZE = 64 // 每个地形块64x64像素
 
 class TerrainGenerator {
@@ -130,46 +130,117 @@ class TerrainGenerator {
   
   // 生成山脉和丘陵
   generateMountainsAndHills(terrain) {
-    // 生成1-2条山脉
+    // 生成1-2条主要山脉
     const mountainRanges = Math.floor(Math.random() * 2) + 1
     
     for (let range = 0; range < mountainRanges; range++) {
-      // 随机选择山脉方向（水平或垂直）
-      const isHorizontal = Math.random() < 0.5
+      this.generateMountainRange(terrain)
+    }
+    
+    // 在山脉周围生成丘陵过渡带
+    this.generateHillTransitions(terrain)
+    
+    // 在其他位置随机放置独立小丘陵
+    this.generateScatteredHills(terrain)
+  }
+  
+  // 生成自然山脉
+  generateMountainRange(terrain) {
+    // 选择山脉起点
+    const startX = Math.floor(Math.random() * GRID_SIZE)
+    const startY = Math.floor(Math.random() * GRID_SIZE)
+    
+    // 山脉主要方向（8个方向）
+    const directions = [[-1,-1], [-1,0], [-1,1], [0,-1], [0,1], [1,-1], [1,0], [1,1]]
+    let mainDirection = directions[Math.floor(Math.random() * directions.length)]
+    
+    let currentX = startX
+    let currentY = startY
+    const mountainPath = []
+    const maxLength = Math.floor(Math.random() * 4) + 3 // 3-6格长
+    
+    for (let i = 0; i < maxLength; i++) {
+      // 检查边界
+      if (currentX < 0 || currentX >= GRID_SIZE || currentY < 0 || currentY >= GRID_SIZE) break
       
-      if (isHorizontal) {
-        // 水平山脉
-        const y = Math.floor(Math.random() * GRID_SIZE)
-        const startX = Math.floor(Math.random() * (GRID_SIZE - 2))
-        const length = Math.floor(Math.random() * 3) + 2 // 2-4格长
-        
-        for (let i = 0; i < length && startX + i < GRID_SIZE; i++) {
-          const x = startX + i
-          // 避免在玩家位置放置山脉
-          if (x === terrain.playerPosition.x && y === terrain.playerPosition.y) continue
-          
-          terrain.grid[y][x].hill = Math.random() < 0.6 ? 'Mountains' : 'LargeHills'
-        }
+      // 避免在玩家位置放置山脉
+      if (currentX === terrain.playerPosition.x && currentY === terrain.playerPosition.y) {
+        // 跳过玩家位置，继续下一个位置
+        currentX += mainDirection[0]
+        currentY += mainDirection[1]
+        continue
+      }
+      
+      mountainPath.push({ x: currentX, y: currentY })
+      
+      // 30%概率改变方向（创造自然弯曲）
+      if (Math.random() < 0.3) {
+        const newDirection = directions[Math.floor(Math.random() * directions.length)]
+        mainDirection = newDirection
+      }
+      
+      // 移动到下一个位置
+      currentX += mainDirection[0]
+      currentY += mainDirection[1]
+    }
+    
+    // 应用山脉到地形
+    mountainPath.forEach((pos, index) => {
+      const isStart = index === 0
+      const isEnd = index === mountainPath.length - 1
+      
+      // 山脉中心更可能是高山，边缘更可能是大丘陵
+      if (isStart || isEnd) {
+        terrain.grid[pos.y][pos.x].hill = Math.random() < 0.4 ? 'Mountains' : 'LargeHills'
       } else {
-        // 垂直山脉
-        const x = Math.floor(Math.random() * GRID_SIZE)
-        const startY = Math.floor(Math.random() * (GRID_SIZE - 2))
-        const length = Math.floor(Math.random() * 3) + 2 // 2-4格长
+        terrain.grid[pos.y][pos.x].hill = Math.random() < 0.7 ? 'Mountains' : 'LargeHills'
+      }
+    })
+  }
+  
+  // 生成山脉周围的丘陵过渡带
+  generateHillTransitions(terrain) {
+    for (let y = 0; y < GRID_SIZE; y++) {
+      for (let x = 0; x < GRID_SIZE; x++) {
+        // 如果当前位置已经有山丘，跳过
+        if (terrain.grid[y][x].hill) continue
         
-        for (let i = 0; i < length && startY + i < GRID_SIZE; i++) {
-          const y = startY + i
-          // 避免在玩家位置放置山脉
+        // 检查周围是否有山脉
+        let nearMountain = false
+        for (let dy = -1; dy <= 1; dy++) {
+          for (let dx = -1; dx <= 1; dx++) {
+            const nx = x + dx
+            const ny = y + dy
+            if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+              if (terrain.grid[ny][nx].hill === 'Mountains') {
+                nearMountain = true
+                break
+              }
+            }
+          }
+          if (nearMountain) break
+        }
+        
+        // 如果靠近山脉，60%概率生成丘陵过渡
+        if (nearMountain && Math.random() < 0.6) {
+          // 避免在玩家位置放置丘陵
           if (x === terrain.playerPosition.x && y === terrain.playerPosition.y) continue
           
-          terrain.grid[y][x].hill = Math.random() < 0.6 ? 'Mountains' : 'LargeHills'
+          terrain.grid[y][x].hill = Math.random() < 0.7 ? 'LargeHills' : 'SmallHills'
         }
       }
     }
-    
-    // 在其他位置随机放置小丘陵
+  }
+  
+  // 生成散布的独立小丘陵
+  generateScatteredHills(terrain) {
     for (let y = 0; y < GRID_SIZE; y++) {
       for (let x = 0; x < GRID_SIZE; x++) {
-        if (!terrain.grid[y][x].hill && Math.random() < 0.2) {
+        // 如果当前位置已经有山丘，跳过
+        if (terrain.grid[y][x].hill) continue
+        
+        // 15%概率生成独立小丘陵
+        if (Math.random() < 0.15) {
           // 避免在玩家位置放置丘陵
           if (x === terrain.playerPosition.x && y === terrain.playerPosition.y) continue
           
@@ -179,48 +250,131 @@ class TerrainGenerator {
     }
   }
   
-  // 生成河流
+  // 生成河流和水系（确保地图上一定有水系）
   generateRivers(terrain) {
-    // 只在适合的生物群系生成河流
-    const riverBiomes = ['TemperateForest', 'TemperateSwamp', 'TropicalRainforest', 'BorealForest']
-    if (!riverBiomes.includes(terrain.biome)) return
+    // 80%概率生成河流，20%概率生成湖泊或海洋
+    const waterType = Math.random()
     
-    // 30%概率生成河流
-    if (Math.random() < 0.3) {
-      // 河流通常是对角线或曲线
-      const isMainDiagonal = Math.random() < 0.5
+    if (waterType < 0.8) {
+      // 生成蜿蜒河流
+      this.generateMeanderingRiver(terrain)
+    } else {
+      // 生成湖泊或海洋区域
+      this.generateLakeOrSea(terrain)
+    }
+  }
+  
+  // 生成蜿蜒河流
+  generateMeanderingRiver(terrain) {
+    // 选择河流起点（边缘）
+    const startSide = Math.floor(Math.random() * 4) // 0=上, 1=右, 2=下, 3=左
+    let currentX, currentY
+    
+    switch (startSide) {
+      case 0: // 从上边开始
+        currentX = Math.floor(Math.random() * GRID_SIZE)
+        currentY = 0
+        break
+      case 1: // 从右边开始
+        currentX = GRID_SIZE - 1
+        currentY = Math.floor(Math.random() * GRID_SIZE)
+        break
+      case 2: // 从下边开始
+        currentX = Math.floor(Math.random() * GRID_SIZE)
+        currentY = GRID_SIZE - 1
+        break
+      case 3: // 从左边开始
+        currentX = 0
+        currentY = Math.floor(Math.random() * GRID_SIZE)
+        break
+    }
+    
+    // 河流路径点
+    const riverPath = []
+    const maxSteps = GRID_SIZE * 2 // 最大步数
+    
+    for (let step = 0; step < maxSteps; step++) {
+      // 添加当前位置到河流路径
+      if (currentX >= 0 && currentX < GRID_SIZE && currentY >= 0 && currentY < GRID_SIZE) {
+        riverPath.push({ x: currentX, y: currentY })
+      }
       
-      if (isMainDiagonal) {
-        // 主对角线河流
-        for (let i = 0; i < GRID_SIZE; i++) {
-          const x = i
-          const y = i
-          // 避免在玩家位置和山脉位置放置河流
-          if (x === terrain.playerPosition.x && y === terrain.playerPosition.y) continue
-          if (terrain.grid[y][x].hill) continue
-          
-          // 河流区域改为湿地生物群系
-          if (terrain.biome === 'TemperateForest') {
-            terrain.grid[y][x].biome = 'TemperateSwamp'
-          } else if (terrain.biome === 'TropicalRainforest') {
-            terrain.grid[y][x].biome = 'TropicalSwamp'
-          }
-        }
+      // 计算下一步方向（倾向于流向地图中心或对角）
+      const centerX = Math.floor(GRID_SIZE / 2)
+      const centerY = Math.floor(GRID_SIZE / 2)
+      
+      let nextX = currentX
+      let nextY = currentY
+      
+      // 70%概率朝向中心，30%概率随机蜿蜒
+      if (Math.random() < 0.7) {
+        if (currentX < centerX) nextX++
+        else if (currentX > centerX) nextX--
+        
+        if (currentY < centerY) nextY++
+        else if (currentY > centerY) nextY--
       } else {
-        // 反对角线河流
-        for (let i = 0; i < GRID_SIZE; i++) {
-          const x = i
-          const y = GRID_SIZE - 1 - i
-          // 避免在玩家位置和山脉位置放置河流
+        // 随机蜿蜒
+        const directions = [[-1,0], [1,0], [0,-1], [0,1], [-1,-1], [1,1], [-1,1], [1,-1]]
+        const randomDir = directions[Math.floor(Math.random() * directions.length)]
+        nextX += randomDir[0]
+        nextY += randomDir[1]
+      }
+      
+      // 检查边界
+      if (nextX < 0 || nextX >= GRID_SIZE || nextY < 0 || nextY >= GRID_SIZE) {
+        break
+      }
+      
+      currentX = nextX
+      currentY = nextY
+    }
+    
+    // 应用河流路径到地形
+    riverPath.forEach(pos => {
+      if (pos.x === terrain.playerPosition.x && pos.y === terrain.playerPosition.y) return
+      if (terrain.grid[pos.y][pos.x].hill === 'Mountains' || terrain.grid[pos.y][pos.x].hill === 'Impassable') return
+      
+      // 设置为水系生物群系
+      const currentBiome = terrain.grid[pos.y][pos.x].biome
+      if (currentBiome === 'TemperateForest' || currentBiome === 'BorealForest') {
+        terrain.grid[pos.y][pos.x].biome = 'TemperateSwamp'
+      } else if (currentBiome === 'TropicalRainforest') {
+        terrain.grid[pos.y][pos.x].biome = 'TropicalSwamp'
+      } else if (currentBiome === 'Tundra' || currentBiome === 'IceSheet') {
+        terrain.grid[pos.y][pos.x].biome = 'ColdBog'
+      } else {
+        terrain.grid[pos.y][pos.x].biome = 'TemperateSwamp'
+      }
+    })
+  }
+  
+  // 生成湖泊或海洋
+  generateLakeOrSea(terrain) {
+    // 选择湖泊中心位置
+    const centerX = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1
+    const centerY = Math.floor(Math.random() * (GRID_SIZE - 2)) + 1
+    
+    // 湖泊大小（1-3格半径）
+    const radius = Math.floor(Math.random() * 3) + 1
+    
+    for (let y = Math.max(0, centerY - radius); y <= Math.min(GRID_SIZE - 1, centerY + radius); y++) {
+      for (let x = Math.max(0, centerX - radius); x <= Math.min(GRID_SIZE - 1, centerX + radius); x++) {
+        const distance = Math.abs(x - centerX) + Math.abs(y - centerY)
+        if (distance <= radius) {
+          // 避免在玩家位置放置水体
           if (x === terrain.playerPosition.x && y === terrain.playerPosition.y) continue
-          if (terrain.grid[y][x].hill) continue
           
-          // 河流区域改为湿地生物群系
-          if (terrain.biome === 'TemperateForest') {
+          // 根据距离海岸决定是海洋还是湖泊
+          const isCoastal = x === 0 || x === GRID_SIZE - 1 || y === 0 || y === GRID_SIZE - 1
+          if (isCoastal && Math.random() < 0.6) {
+            terrain.grid[y][x].biome = 'Ocean'
+          } else {
             terrain.grid[y][x].biome = 'TemperateSwamp'
-          } else if (terrain.biome === 'TropicalRainforest') {
-            terrain.grid[y][x].biome = 'TropicalSwamp'
           }
+          
+          // 清除山丘（水体不能有山丘）
+          terrain.grid[y][x].hill = null
         }
       }
     }

@@ -20,7 +20,7 @@
       
       <!-- 主菜单按钮 -->
       <div class="menu-buttons">
-        <input class="menu-btn" type="button" value="进入殖民地" onclick="enterColony" />
+        <input class="menu-btn" type="button" value="{{ enterColonyButtonText }}" onclick="enterColony" />
         <input class="menu-btn" type="button" value="开始新旅程" onclick="startNewJourney" />
         <input class="menu-btn" type="button" value="存档测试" onclick="goToSaveTest" />
         <input class="menu-btn" type="button" value="回到现实" onclick="backToReality" />
@@ -33,11 +33,13 @@
 import router from "@system.router"
 import configuration from "@system.configuration"
 import humanDisplay from "../../common/humanDisplay.js"
+import saveManager from "../../common/saveManager.js"
 
 export default {
   // 页面级组件的数据模型
   private: {
     title: "RimWorld",
+    enterColonyButtonText: "进入殖民地",
     currentCharacter: {
       config: null,
       paths: {
@@ -58,12 +60,63 @@ export default {
   onInit() {
     this.generateNewCharacter()
     this.startCharacterRotation()
+    this.updateEnterColonyButton()
+  },
+
+  // 更新进入殖民地按钮文案
+  updateEnterColonyButton() {
+    saveManager.getSaveList().then(saveList => {
+      if (saveList.length > 0) {
+        const latestSave = saveList[0]
+        const saveDate = new Date(latestSave.timestamp)
+        const dateStr = `${saveDate.getMonth() + 1}/${saveDate.getDate()}`
+        this.enterColonyButtonText = `继续游戏 (${latestSave.name})`
+      } else {
+        this.enterColonyButtonText = "进入殖民地"
+      }
+    }).catch(error => {
+      console.error('获取存档列表失败:', error)
+      this.enterColonyButtonText = "进入殖民地"
+    })
   },
 
   enterColony() {
-    // 进入殖民地管理页面
-    router.push({
-      uri: "/pages/colony"
+    // 检查是否有存档，如果有则直接进入游戏
+    saveManager.getSaveList().then(saveList => {
+      if (saveList.length > 0) {
+        // 有存档，获取最近的存档
+        const latestSave = saveList[0] // 存档列表已按时间戳降序排列
+        console.log(`找到最近存档: ${latestSave.name}，准备进入游戏`)
+        
+        // 加载存档数据
+        return saveManager.loadGame(latestSave.name)
+      } else {
+        // 没有存档，跳转到殖民地管理页面
+        console.log('没有找到存档，跳转到殖民地管理页面')
+        router.push({
+          uri: "/pages/colony"
+        })
+        return null
+      }
+    }).then(saveData => {
+      if (saveData && saveData.data) {
+        console.log(`存档加载成功，进入游戏页面`)
+        // 直接跳转到游戏页面，并传递存档数据
+        router.push({
+          uri: "/pages/game",
+          params: {
+            loadFromSave: true,
+            saveData: JSON.stringify(saveData.data),
+            saveName: saveData.name
+          }
+        })
+      }
+    }).catch(error => {
+      console.error('加载存档失败:', error)
+      // 加载失败，跳转到殖民地管理页面
+      router.push({
+        uri: "/pages/colony"
+      })
     })
   },
 

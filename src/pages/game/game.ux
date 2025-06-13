@@ -1,23 +1,23 @@
 <template>
   <div class="game-page">
     <!-- 游戏状态栏 -->
-    <div class="status-bar">
+    <div class="status-bar" style="{{ responsiveStyles.statusBar }}">
       <div class="status-item status-left">
-        <text class="status-label">殖民者:</text>
-        <text class="status-value">{{ (colonistData || currentCharacter) ? (colonistData || currentCharacter).name : '未知' }}</text>
+        <text class="status-label" style="{{ responsiveStyles.statusLabel }}">殖民者:</text>
+        <text class="status-value" style="{{ responsiveStyles.statusValue }}">{{ (colonistData || currentCharacter) ? (colonistData || currentCharacter).name : '未知' }}</text>
       </div>
       <div class="status-item status-center">
-        <text class="status-label">第{{ currentDay }}天</text>
-        <text class="status-value">{{ currentSeason }} {{ currentYear }}</text>
+        <text class="status-label" style="{{ responsiveStyles.statusLabel }}">第{{ currentDay }}天</text>
+        <text class="status-value" style="{{ responsiveStyles.statusValue }}">{{ currentSeason }} {{ currentYear }}</text>
       </div>
       <div class="status-item status-right">
-        <text class="status-label">位置:</text>
-        <text class="status-value">{{ playerPosition.x }},{{ playerPosition.y }}</text>
+        <text class="status-label" style="{{ responsiveStyles.statusLabel }}">位置:</text>
+        <text class="status-value" style="{{ responsiveStyles.statusValue }}">{{ playerPosition.x }},{{ playerPosition.y }}</text>
       </div>
     </div>
     
     <!-- 资源状态栏 -->
-    <div class="resource-bar">
+    <div class="resource-bar" style="{{ responsiveStyles.resourceBar }}">
       <div class="resource-item">
         <text class="resource-label">食物:</text>
         <text class="resource-value">{{ resources.food }}</text>
@@ -36,79 +36,109 @@
       </div>
     </div>
     
-    <!-- 地形显示区域 -->
-    <div class="terrain-container">
-      <!-- 地图渲染状态指示器 -->
-      <div class="map-status-indicator">
-        <text class="map-status-text">地图状态: {{ (terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0) ? '已加载' : '未加载' }}</text>
-        <text class="map-info-text" show="{{ terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0 && terrainGrid[0] }}">{{ terrainGrid.length }}x{{ terrainGrid[0].length }} 网格</text>
-        <text class="player-status-text">玩家: ({{ playerPosition.x }},{{ playerPosition.y }})</text>
-      </div>
+    <!-- 主游戏区域 - 左右布局 -->
+    <div class="main-game-area">
+      <!-- 地图显示区域 - 使用独立的map组件 -->
+      <div class="map-display-container" style="{{ responsiveStyles.mapContainer }}">
+      <!-- 调试信息：地图显示容器 -->
+      <text class="debug-info" show="{{ showDebugInfo }}">当前是地图显示容器(map-display-container)</text>
       
-      <!-- 5x5地形网格显示 -->
-      <div class="terrain-grid" show="{{ terrainGrid && Array.isArray(terrainGrid) && terrainGrid.length > 0 }}">
-        <div class="terrain-row" for="{{(row, rowIndex) in terrainGrid}}" show="{{ row && Array.isArray(row) }}">
-          <div class="terrain-tile-container" for="{{(tile, colIndex) in row}}" show="{{ tile }}">
-            <!-- 地形背景 -->
-            <image class="terrain-tile-bg" src="{{ getBiomePath(tile.biome) }}" onerror="handleImageError"></image>
-            <!-- 地形特征 -->
-            <image class="terrain-tile-hill" show="{{ tile.hill && tile.hill !== '' }}" src="{{ getHillPath(tile.hill) }}" onerror="handleImageError"></image>
-            <!-- 地形物体 -->
-            <image class="terrain-tile-object" show="{{ tile.object && tile.object !== '' }}" src="{{ getObjectPath(tile.object) }}" onerror="handleImageError"></image>
-            
-            <!-- 调试文字标识和渲染验证 -->
-            <text class="terrain-debug-text">{{ rowIndex }},{{ colIndex }}</text>
-            <text class="terrain-biome-text">{{ tile.biome || 'N/A' }}</text>
-            <text class="terrain-hill-text" show="{{ tile.hill }}">{{ tile.hill }}</text>
-            
-            <!-- 玩家角色显示（仅在玩家位置显示） -->
-            <div class="player-character" show="{{ playerPosition.x === colIndex && playerPosition.y === rowIndex }}">
-              <image class="player-body" src="{{ characterPaths.body }}" onerror="handleImageError"></image>
-              <image class="player-head" show="{{ characterPaths.head && characterPaths.head !== '' }}" src="{{ characterPaths.head }}" onerror="handleImageError"></image>
-              <image class="player-hair" show="{{ characterPaths.hair && characterPaths.hair !== '' }}" src="{{ characterPaths.hair }}" onerror="handleImageError"></image>
-              <image class="player-beard" show="{{ characterPaths.beard && characterPaths.beard !== '' }}" src="{{ characterPaths.beard }}" onerror="handleImageError"></image>
+      <!-- 地图组件内容 -->
+      <div class="map-component" style="{{ responsiveStyles.mapComponent }}">
+        <!-- 地形网格 -->
+        <div class="terrain-grid" show="{{ terrainGrid && terrainGrid.length > 0 }}">
+          <div class="terrain-row" for="(rowIndex, row) in terrainGrid">
+            <div class="tile-container" for="(colIndex, tile) in row">
+              <!-- 地形背景 -->
+               <image class="terrain-image" 
+                      src="{{ getTerrainPath(tile.biome) }}" 
+                      onerror="handleImageError">
+               </image>
+               
+               <!-- 地形特征 -->
+               <image class="terrain-image" 
+                      src="{{ getFeaturePath(tile.hill) }}" 
+                      show="{{ tile.hill && tile.hill !== '' }}"
+                      onerror="handleImageError">
+               </image>
+              
+              <!-- 地形物体 -->
+              <image class="terrain-image" 
+                     src="{{ getObjectPath(tile.object) }}" 
+                     show="{{ tile.object && tile.object !== '' }}"
+                     onerror="handleImageError">
+              </image>
+              
+              <!-- 玩家角色 -->
+              <div class="player-character" 
+                   show="{{ playerPosition && playerPosition.x === colIndex && playerPosition.y === rowIndex }}">
+                <!-- 人物身体 -->
+                <image class="player-body" 
+                       src="{{ characterModel.bodyPath }}" 
+                       show="{{ characterModel.bodyPath }}"
+                       onerror="handleImageError">
+                </image>
+                
+                <!-- 人物头部 -->
+                <image class="player-head" 
+                       src="{{ characterModel.headPath }}" 
+                       show="{{ characterModel.headPath }}"
+                       onerror="handleImageError">
+                </image>
+                
+                <!-- 人物头发 -->
+                <image class="player-hair" 
+                       src="{{ characterModel.hairPath }}" 
+                       show="{{ characterModel.hairPath && characterModel.hairPath !== '无' }}"
+                       onerror="handleImageError">
+                </image>
+                
+                <!-- 人物胡须 -->
+                <image class="player-beard" 
+                       src="{{ characterModel.beardPath }}" 
+                       show="{{ characterModel.beardPath && characterModel.beardPath !== '无' }}"
+                       onerror="handleImageError">
+                </image>
+                
+                <!-- 备用文本符号（图片加载失败时显示） -->
+                <text class="character-symbol" show="{{ !characterModel.bodyPath }}">@</text>
+              </div>
             </div>
           </div>
         </div>
       </div>
-      
-      <!-- 当前位置详细信息显示 -->
-      <div class="terrain-info-panel">
-        <text class="terrain-info-text">{{ getCurrentTileInfo() }}</text>
-        <text class="player-name-text">{{ (colonistData || currentCharacter).name || '角色' }}</text>
-      </div>
     </div>
     
-    <!-- 当前位置信息 -->
-    <div class="location-info" show="{{ showLocationInfo }}">
-      <text class="info-title">当前位置信息</text>
-      <text class="info-text">生物群系: {{ currentTileInfo.biome }}</text>
-      <text class="info-text" show="{{ currentTileInfo.hill && currentTileInfo.hill !== '' }}">地形: {{ currentTileInfo.hill }}</text>
-      <text class="info-text" show="{{ currentTileInfo.object && currentTileInfo.object !== '' }}">地标: {{ currentTileInfo.object }}</text>
-      
-      <!-- 殖民者状态 -->
-      <div class="colonist-status" show="{{ colonistData || currentCharacter }}">
-        <text class="info-title">{{ (colonistData || currentCharacter).name }}</text>
-        <text class="info-text">年龄: {{ (colonistData || currentCharacter).age }}岁 | 性别: {{ (colonistData || currentCharacter).gender === 'male' ? '男' : '女' }}</text>
-        <text class="info-text">健康: {{ (colonistData || currentCharacter).health }}% | 心情: {{ (colonistData || currentCharacter).mood }}%</text>
-        <text class="info-text" show="{{ (colonistData || currentCharacter).traits && (colonistData || currentCharacter).traits.length > 0 }}">特性: {{ getTraitsText() }}</text>
+    <!-- 游戏菜单 -->
+    <div class="game-menu">
+      <div class="menu-item" onclick="handleMenuAction('explore')">
+        <image class="menu-icon" src="/common/UI/Icons/Stars.png" onerror="handleImageError"></image>
+        <text class="menu-text">探索</text>
       </div>
-      
-      <!-- 讲述人信息 -->
-      <div class="narrator-status" show="{{ narratorData }}">
-        <text class="info-title">讲述人: {{ narratorData.name }}</text>
-        <text class="info-text">难度: {{ getDifficultyText(narratorData.difficulty) }}</text>
+      <div class="menu-item" onclick="handleMenuAction('build')">
+        <image class="menu-icon" src="/common/UI/Icons/AutoRebuild.png" onerror="handleImageError"></image>
+        <text class="menu-text">建造</text>
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('manage')">
+        <image class="menu-icon" src="/common/UI/Icons/AutoHomeArea.png" onerror="handleImageError"></image>
+        <text class="menu-text">管理</text>
+      </div>
+      <div class="menu-item" onclick="handleMenuAction('combat')">
+        <image class="menu-icon" src="/common/UI/Icons/AttackMelee.png" onerror="handleImageError"></image>
+        <text class="menu-text">战斗</text>
       </div>
     </div>
+  </div>
+    
+
     
     <!-- 底部导航 -->
-    <div class="bottom-nav">
-      <input class="nav-btn" type="button" value="重新生成" onclick="regenerateTerrain" />
-      <input class="nav-btn primary" type="button" value="快速保存" onclick="quickSave" />
-      <input class="nav-btn" type="button" value="手动保存" onclick="saveGameWithName" />
-      <input class="nav-btn" type="button" value="快速加载" onclick="quickLoad" />
-      <input class="nav-btn {{ autoMoveEnabled ? 'auto-move-on' : 'auto-move-off' }}" type="button" value="{{ autoMoveEnabled ? '停止挂机' : '开启挂机' }}" onclick="toggleAutoMovement" />
-      <input class="nav-btn" type="button" value="返回" onclick="goBack" />
+    <div class="bottom-nav" style="{{ responsiveStyles.bottomNav }}">
+      <input class="nav-btn" style="{{ responsiveStyles.navBtn }}" type="button" value="重新生成" onclick="regenerateTerrain" />
+      <input class="nav-btn" style="{{ responsiveStyles.navBtn }}" type="button" value="手动保存" onclick="saveGameWithName" />
+      <input class="nav-btn {{ autoMoveEnabled ? 'auto-move-on' : 'auto-move-off' }}" style="{{ responsiveStyles.navBtn }}" type="button" value="{{ autoMoveEnabled ? '停止挂机' : '开启挂机' }}" onclick="toggleAutoMovement" />
+      <input class="nav-btn test-btn" style="{{ responsiveStyles.navBtn }}" type="button" value="测试" onclick="showResponsiveTest" />
+      <input class="nav-btn" style="{{ responsiveStyles.navBtn }}" type="button" value="返回" onclick="goBack" />
     </div>
   </div>
 </template>
@@ -118,10 +148,15 @@ import router from "@system.router"
 import humanDisplay from "../../common/humanDisplay.js"
 import saveManager from "../../common/saveManager.js"
 import terrainGenerator from "../../common/terrainGenerator.js"
+import responsiveManager from "../../common/responsiveManager.js"
 
 export default {
-  props: ['colonist', 'narrator', 'story', 'gameSettings', 'preGeneratedTerrain'],
+  props: ['colonist', 'narrator', 'story', 'gameSettings', 'preGeneratedTerrain', 'loadFromSave', 'saveData', 'saveName'],
   private: {
+    // 响应式样式配置
+    responsiveStyles: {},
+    deviceInfo: {},
+    
     // 游戏基础信息
     gameId: '',
     gameStartTime: 0,
@@ -170,21 +205,87 @@ export default {
     storyData: null, // 故事数据
     currentDirection: 'south',
     
+    // 调试信息控制
+    showDebugInfo: true, // 显示调试信息
+    debugTimer: null, // 调试信息定时器
+    
     // UI控制相关
-    showLocationInfo: false, // 控制位置信息显示
-    locationInfoTimer: null, // 位置信息定时器
+
+
     characterPaths: {
       body: 'common/human/bodies/Naked_Male_south.png',
       head: 'common/human/heads/Male/Male_Average_Normal_south.png',
-      hair: 'common/human/haris/Decent_south.png',
+      hair: 'common/human/hairs/Decent_south.png',
       beard: 'common/human/beards/BeardMoustache_south.png'
+    },
+    
+    // 人物模型数据（用于模板绑定）
+    characterModel: {
+      bodyPath: '',
+      headPath: '',
+      hairPath: '',
+      beardPath: ''
     }
   },
   
   onInit() {
     console.log('🎮 游戏页面开始初始化...')
     
-    // 立即初始化terrainGrid为5x5默认地形网格，避免模板渲染错误
+    // 检查是否从存档加载
+    if (this.loadFromSave && this.saveData) {
+      console.log('📂 检测到从存档加载，开始加载存档数据...')
+      try {
+        // 初始化响应式管理器
+        this.initResponsiveLayout()
+        
+        // 立即初始化terrainGrid为10x10默认地形网格，避免模板渲染错误
+        this.terrainGrid = this.createDefaultTerrainGrid()
+        
+        // 解析存档数据
+        const gameData = typeof this.saveData === 'string' ? JSON.parse(this.saveData) : this.saveData
+        console.log(`📥 正在加载存档: ${this.saveName}`)
+        
+        // 加载存档数据
+        this.loadGameData(gameData)
+        
+        // 执行必要的初始化步骤（存档加载后仍需要这些）
+        console.log('🔧 执行存档加载后的必要初始化...')
+        
+        // 初始化角色系统（如果存档中有角色数据）
+        if (gameData.currentCharacter) {
+          this.initializeCharacter(gameData.currentCharacter)
+          console.log('✅ 角色系统重新初始化完成')
+        }
+        
+        // 初始化游戏设置
+        this.initializeGameSettings()
+        console.log('✅ 游戏设置重新初始化完成')
+        
+        // 启动自动存档
+        this.startAutoSave()
+        console.log('✅ 自动存档系统启动完成')
+        
+        // 启动自动移动（如果开启）
+        if (this.autoMoveEnabled) {
+          this.startAutoMovement()
+          console.log('✅ 自动移动已启动')
+        }
+        
+        // 启动调试信息定时器
+        this.startDebugInfoTimer()
+        
+        console.log('✅ 存档加载完成，游戏已恢复')
+        return
+      } catch (error) {
+        console.error('❌ 存档加载失败:', error)
+        // 加载失败，继续正常初始化流程
+      }
+    }
+    
+    // 初始化响应式管理器
+    this.initResponsiveLayout()
+    
+    // 立即初始化terrainGrid为10x10默认地形网格，避免模板渲染错误
     this.terrainGrid = this.createDefaultTerrainGrid()
     
     // 验证初始化的terrainGrid
@@ -330,8 +431,10 @@ export default {
       this.createInitialSave()
       console.log('✅ 初始存档创建完成')
       
-      // 启动位置信息定时器（5秒后隐藏）
-      this.startLocationInfoTimer()
+
+      
+      // 启动调试信息定时器（10秒后隐藏）
+      this.startDebugInfoTimer()
       
       console.log('🎉 游戏初始化全部完成！')
     } catch (error) {
@@ -348,19 +451,20 @@ export default {
       clearInterval(this.autoMoveTimer)
       this.autoMoveTimer = null
     }
-    if (this.locationInfoTimer) {
-      clearTimeout(this.locationInfoTimer)
-      this.locationInfoTimer = null
+
+    if (this.debugTimer) {
+      clearTimeout(this.debugTimer)
+      this.debugTimer = null
     }
   },
   
-  // 创建默认的5x5地形网格
+  // 创建默认的10x10地形网格
   createDefaultTerrainGrid() {
-    console.log('🏗️ 创建默认5x5地形网格...')
+    console.log('🏗️ 创建默认10x10地形网格...')
     const grid = []
-    for (let y = 0; y < 5; y++) {
+    for (let y = 0; y < 10; y++) {
       grid[y] = []
-      for (let x = 0; x < 5; x++) {
+      for (let x = 0; x < 10; x++) {
         grid[y][x] = {
           biome: 'TemperateForest',
           hill: null,
@@ -454,7 +558,7 @@ export default {
     
     const startTime = Date.now()
     
-    // 使用安全方法创建5x5的默认地形网格
+    // 使用安全方法创建10x10的默认地形网格
     this.terrainGrid = this.createDefaultTerrainGrid()
     
     // 验证创建的地形网格
@@ -484,11 +588,9 @@ export default {
     
     // 详细日志：检查默认地形资源路径
     console.log('🔍 验证默认地形资源路径...')
-    const defaultBiomePath = this.getBiomePath('TemperateForest')
     console.log('🌲 默认生物群系路径验证:', {
       biome: 'TemperateForest',
-      path: defaultBiomePath,
-      pathExists: !!defaultBiomePath
+      note: '路径验证已移至map组件'
     })
     
     // 设置玩家位置在地图中央
@@ -816,22 +918,17 @@ export default {
         物体覆盖率: `${((tilesWithObjects / (this.terrainGrid.length * this.terrainGrid[0].length)) * 100).toFixed(1)}%`
       })
       
-      // 详细日志：检查资源路径（仅显示前几个地块以避免日志过多）
-      console.log('🗺️ 检查前9个地块的资源路径:')
+      // 详细日志：检查前9个地块的基本信息
+      console.log('🗺️ 检查前9个地块的基本信息:')
       for (let y = 0; y < Math.min(3, this.terrainGrid.length); y++) {
         for (let x = 0; x < Math.min(3, this.terrainGrid[y].length); x++) {
           const tile = this.terrainGrid[y][x]
-          const biomePath = this.getBiomePath(tile.biome)
-          const hillPath = this.getHillPath(tile.hill)
-          const objectPath = this.getObjectPath(tile.object)
           
           console.log(`📍 地块[${x},${y}]:`, {
             biome: tile.biome,
-            biomePath: biomePath,
             hill: tile.hill || '无',
-            hillPath: hillPath || '无',
             object: tile.object || '无',
-            objectPath: objectPath || '无'
+            note: '资源路径验证已移至map组件'
           })
         }
       }
@@ -1007,11 +1104,9 @@ export default {
       
       // 验证地块信息的有效性
       if (this.currentTileInfo.biome) {
-        const biomePath = this.getBiomePath(this.currentTileInfo.biome)
-        console.log('🌲 当前地块生物群系路径验证:', {
+        console.log('🌲 当前地块生物群系验证:', {
           biome: this.currentTileInfo.biome,
-          path: biomePath,
-          pathExists: !!biomePath
+          note: '路径验证已移至map组件'
         })
       }
       
@@ -1099,30 +1194,7 @@ export default {
     }
   },
   
-  // 获取资源路径
-  getBiomePath(biome) {
-    if (!biome) {
-      console.log('⚠️ getBiomePath: 生物群系参数为空')
-      return ''
-    }
-    const path = `common/world/Biomes/${biome}.png`
-    console.log(`🌍 生成生物群系路径: ${biome} -> ${path}`)
-    return path
-  },
 
-  getHillPath(hill) {
-    if (!hill) return ''
-    const path = `common/world/Hills/${hill}.png`
-    console.log(`⛰️ 生成山丘路径: ${hill} -> ${path}`)
-    return path
-  },
-
-  getObjectPath(object) {
-    if (!object) return ''
-    const path = `common/world/WorldObjects/${object}.png`
-    console.log(`🏗️ 生成物体路径: ${object} -> ${path}`)
-    return path
-  },
 
   // 获取当前位置的地形信息
   getCurrentTile() {
@@ -1140,30 +1212,7 @@ export default {
     return { biome: 'TemperateForest', hill: null, object: null }
   },
 
-  getCurrentTileBiomePath() {
-    const tile = this.getCurrentTile()
-    return this.getBiomePath(tile.biome)
-  },
 
-  getCurrentTileHill() {
-    const tile = this.getCurrentTile()
-    return tile.hill
-  },
-
-  getCurrentTileHillPath() {
-    const tile = this.getCurrentTile()
-    return this.getHillPath(tile.hill)
-  },
-
-  getCurrentTileObject() {
-    const tile = this.getCurrentTile()
-    return tile.object
-  },
-
-  getCurrentTileObjectPath() {
-    const tile = this.getCurrentTile()
-    return this.getObjectPath(tile.object)
-  },
 
   getCurrentTileInfo() {
     const tile = this.getCurrentTile()
@@ -1272,6 +1321,13 @@ export default {
     if (colonistData && colonistData.characterPaths) {
       this.characterPaths = { ...colonistData.characterPaths }
       this.currentCharacter = colonistData
+      // 更新characterModel数据
+      this.characterModel = {
+        bodyPath: this.characterPaths.body || '',
+        headPath: this.characterPaths.head || '',
+        hairPath: this.characterPaths.hair || '',
+        beardPath: this.characterPaths.beard || ''
+      }
       console.log('✅ 使用传入的角色数据和路径')
     } else if (colonistData) {
       // 如果有角色数据但没有路径，重新生成路径
@@ -1322,13 +1378,32 @@ export default {
         : ''
     }
     
+    // 同时更新characterModel数据供模板使用
+    this.characterModel = {
+      bodyPath: this.characterPaths.body || '',
+      headPath: this.characterPaths.head || '',
+      hairPath: this.characterPaths.hair || '',
+      beardPath: this.characterPaths.beard || ''
+    }
+    
     console.log('🔧 生成的角色路径:', this.characterPaths)
+    console.log('🎭 生成的人物模型数据:', this.characterModel)
   },
   
   updateCharacterPaths() {
     // 更新人物各部件的图片路径
     if (this.currentCharacter) {
       this.characterPaths = humanDisplay.getHumanPartsPaths(this.currentCharacter, this.currentDirection)
+      
+      // 同时更新characterModel数据供模板使用
+      this.characterModel = {
+        bodyPath: this.characterPaths.body || '',
+        headPath: this.characterPaths.head || '',
+        hairPath: this.characterPaths.hair || '',
+        beardPath: this.characterPaths.beard || ''
+      }
+      
+      console.log('🎭 更新人物模型数据:', this.characterModel)
     }
   },
   
@@ -1757,13 +1832,16 @@ export default {
     router.back()
   },
   
-  // 启动位置信息定时器
-  startLocationInfoTimer() {
-    this.showLocationInfo = true
-    this.locationInfoTimer = setTimeout(() => {
-      this.showLocationInfo = false
-      this.locationInfoTimer = null
-    }, 5000) // 5秒后隐藏
+
+  
+  // 启动调试信息定时器
+  startDebugInfoTimer() {
+    this.showDebugInfo = true
+    this.debugTimer = setTimeout(() => {
+      this.showDebugInfo = false
+      this.debugTimer = null
+      console.log('🔍 调试信息已自动隐藏')
+    }, 10000) // 10秒后隐藏
   },
   
   // 验证地图渲染
@@ -1814,20 +1892,14 @@ export default {
         
         validTiles++
         
-        // 收集样本路径用于验证
+        // 收集样本数据用于验证
         if (samplePaths.length < 3) {
-          const biomePath = this.getBiomePath(tile.biome)
-          const hillPath = tile.hill ? this.getHillPath(tile.hill) : null
-          const objectPath = tile.object ? this.getObjectPath(tile.object) : null
-          
           samplePaths.push({
             位置: `(${rowIndex},${colIndex})`,
             生物群系: tile.biome,
-            生物群系路径: biomePath,
             地形: tile.hill || '无',
-            地形路径: hillPath || '无',
             物体: tile.object || '无',
-            物体路径: objectPath || '无'
+            备注: '路径验证已移至map组件'
           })
         }
       }
@@ -1880,6 +1952,166 @@ export default {
     }
     
     console.log('✅ 人物模型渲染验证完成')
+  },
+  
+  // 初始化响应式布局
+  initResponsiveLayout() {
+    try {
+      console.log('📱 初始化响应式布局管理器...')
+      
+      // 获取设备信息
+      this.deviceInfo = responsiveManager.getDeviceInfo()
+      
+      // 获取各组件的响应式样式
+       this.responsiveStyles = {
+         statusBar: responsiveManager.getComponentStyles('statusBar'),
+         statusLabel: responsiveManager.getComponentStyles('statusLabel'),
+         statusValue: responsiveManager.getComponentStyles('statusValue'),
+         resourceBar: responsiveManager.getComponentStyles('resourceBar'),
+         mapContainer: responsiveManager.getComponentStyles('mapContainer'),
+         mapComponent: responsiveManager.getComponentStyles('mapComponent'),
+         bottomNav: responsiveManager.getComponentStyles('bottomNav'),
+         navBtn: responsiveManager.getComponentStyles('navBtn'),
+         locationInfo: responsiveManager.getComponentStyles('locationInfo')
+       }
+      
+      console.log('✅ 响应式布局初始化完成:', {
+        设备信息: this.deviceInfo,
+        地图容器尺寸: this.responsiveStyles.mapContainer,
+        地图缩放: this.responsiveStyles.mapComponent.transform
+      })
+      
+    } catch (error) {
+      console.error('❌ 响应式布局初始化失败:', error)
+      // 使用默认样式配置
+      this.responsiveStyles = {
+        statusBar: {},
+        resourceBar: {},
+        mapContainer: { width: '350px', height: '350px' },
+        mapComponent: { transform: 'scale(1)' },
+        bottomNav: {},
+        navBtn: {},
+        locationInfo: {}
+      }
+    }
+  },
+  
+  // 初始化地形网格数据
+  initializeTerrainGrid() {
+    // 优先使用preGeneratedTerrain数据
+    if (this.preGeneratedTerrain && this.preGeneratedTerrain.grid) {
+      console.log('🗺️ 使用预生成的地形数据')
+      this.terrainGrid = this.preGeneratedTerrain.grid
+      
+      // 同步玩家位置
+      if (this.preGeneratedTerrain.playerPosition) {
+        this.playerPosition = this.preGeneratedTerrain.playerPosition
+      }
+      
+      // 同步生物群系
+      if (this.preGeneratedTerrain.biome) {
+        this.currentBiome = this.preGeneratedTerrain.biome
+      }
+      
+      console.log('✅ 预生成地形数据加载完成:', {
+        网格大小: `${this.terrainGrid.length}x${this.terrainGrid[0].length}`,
+        生物群系: this.currentBiome,
+        玩家位置: this.playerPosition,
+        样本数据: this.terrainGrid[0][0]
+      })
+      return
+    }
+    
+    // 如果没有预生成数据，使用terrainGenerator生成
+    console.log('🎲 使用terrainGenerator生成随机地形')
+    try {
+      const terrainData = terrainGenerator.generateTerrain(10, 10)
+      if (terrainData && terrainData.grid) {
+        this.terrainGrid = terrainData.grid
+        this.currentBiome = terrainData.biome || 'TemperateForest'
+        this.playerPosition = terrainData.playerPosition || { x: 2, y: 2 }
+        
+        console.log('✅ terrainGenerator地形生成完成:', {
+          网格大小: `${this.terrainGrid.length}x${this.terrainGrid[0].length}`,
+          生物群系: this.currentBiome,
+          玩家位置: this.playerPosition,
+          样本数据: this.terrainGrid[0][0]
+        })
+        return
+      }
+    } catch (error) {
+      console.log('❌ terrainGenerator生成失败:', error.message)
+    }
+    
+    // 最后的备用方案：简单随机生成
+    console.log('🔄 使用备用随机生成方案')
+    const biomes = ['TemperateForest', 'BorealForest', 'TropicalRainforest', 'AridShrubland', 'Desert']
+    const hills = [null, 'SmallHills', 'LargeHills', 'Mountains']
+    const objects = [null, null, null, 'Town', 'AncientRoad']
+    
+    this.terrainGrid = []
+    for (let i = 0; i < 5; i++) {
+      const row = []
+      for (let j = 0; j < 5; j++) {
+        const tile = {
+          biome: biomes[Math.floor(Math.random() * biomes.length)],
+          hill: hills[Math.floor(Math.random() * hills.length)],
+          object: objects[Math.floor(Math.random() * objects.length)]
+        }
+        row.push(tile)
+      }
+      this.terrainGrid.push(row)
+    }
+    
+    this.currentBiome = 'TemperateForest'
+    this.playerPosition = { x: 2, y: 2 }
+    
+    console.log('✅ 备用地形网格初始化完成:', {
+      网格大小: `${this.terrainGrid.length}x${this.terrainGrid[0].length}`,
+      样本数据: this.terrainGrid[0][0]
+    })
+  },
+  
+  // 获取地形图片路径
+  getTerrainPath(biome) {
+    const biomeMap = {
+      'TemperateForest': 'common/world/Biomes/TemperateForest.png',
+      'BorealForest': 'common/world/Biomes/BorealForest.png',
+      'TropicalRainforest': 'common/world/Biomes/TropicalRainforest.png',
+      'TropicalSwamp': 'common/world/Biomes/TropicalSwamp.png',
+      'AridShrubland': 'common/world/Biomes/AridShrubland.png',
+      'Desert': 'common/world/Biomes/Desert.png',
+      'ExtremeDesert': 'common/world/Biomes/ExtremeDesert.png',
+      'Tundra': 'common/world/Biomes/Tundra.png',
+      'IceSheet': 'common/world/Biomes/IceSheet.png',
+      'SeaIce': 'common/world/Biomes/IceSheet.png'
+    }
+    const path = biomeMap[biome] || 'common/world/Biomes/TemperateForest.png'
+    return path
+  },
+  
+  // 获取地形特征图片路径
+  getFeaturePath(hill) {
+    const hillMap = {
+      'SmallHills': 'common/world/Hills/SmallHills.png',
+      'LargeHills': 'common/world/Hills/LargeHills.png',
+      'Mountains': 'common/world/Hills/Mountains.png',
+      'ImpassableMountains': 'common/world/Hills/Impassable.png'
+    }
+    return hillMap[hill] || null
+  },
+  
+  // 获取地形物体图片路径
+  getObjectPath(object) {
+    const objectMap = {
+      'AncientRoad': 'common/world/WorldObjects/DefaultSettlement.png',
+      'AbandonedSettlement': 'common/world/WorldObjects/DefaultSettlement.png',
+      'ShrineOfNature': 'common/world/WorldObjects/DefaultSettlement.png',
+      'Town': 'common/world/WorldObjects/Town.png',
+      'Ambush': 'common/world/WorldObjects/Ambush.png',
+      'Mechanoids': 'common/world/WorldObjects/Mechanoids.png'
+    }
+    return objectMap[object] || null
   },
   
   // 处理图片加载错误
@@ -1948,6 +2180,47 @@ export default {
     }
   },
   
+  // 处理游戏菜单点击事件
+  handleMenuAction(action) {
+    try {
+      console.log('🎮 游戏菜单点击:', action)
+      
+      switch (action) {
+        case 'explore':
+          console.log('🔍 探索功能 - 开发中')
+          // TODO: 实现探索功能
+          break
+        case 'build':
+          console.log('🏗️ 建造功能 - 开发中')
+          // TODO: 实现建造功能
+          break
+        case 'manage':
+          console.log('📋 管理功能 - 开发中')
+          // TODO: 实现管理功能
+          break
+        case 'combat':
+          console.log('⚔️ 战斗功能 - 开发中')
+          // TODO: 实现战斗功能
+          break
+        default:
+          console.log('❓ 未知菜单操作:', action)
+      }
+    } catch (error) {
+      console.error('❌ 菜单操作处理失败:', error)
+    }
+  },
+  
+  // 显示响应式测试页面
+  showResponsiveTest() {
+    try {
+      console.log('🔧 跳转到响应式测试页面...')
+      router.push({
+        uri: '/pages/responsive-test/responsive-test'
+      })
+    } catch (error) {
+      console.error('❌ 跳转响应式测试页面失败:', error)
+    }
+  }
 
 }
 </script>
@@ -1965,10 +2238,8 @@ export default {
   flex-direction: row;
   justify-content: space-around;
   background-color: rgba(0,0,0,0.9);
-  padding: 8px 5px;
   border-bottom: 2px solid #8B4513;
   border-radius: 0 0 25px 25px;
-  margin: 0 3px;
 }
 
 .status-item {
@@ -2010,11 +2281,8 @@ export default {
   flex-direction: row;
   justify-content: space-around;
   background-color: rgba(139, 69, 19, 0.8);
-  padding: 6px;
   border-bottom: 1px solid #8B4513;
-  margin: 0 5px;
   border-radius: 12px;
-  margin-top: 3px;
 }
 
 .resource-item {
@@ -2034,232 +2302,151 @@ export default {
   font-weight: bold;
 }
 
-/* 地形显示容器 */
-.terrain-container {
+/* 主游戏区域 - 左右布局 */
+.main-game-area {
+  flex: 1;
+  flex-direction: row;
+  align-items: stretch;
+  justify-content: space-between;
+  margin: 5px 0 60px 0;
+  height: 100%;
+  border: 2px solid #87CEEB;
+  border-radius: 12px;
+  padding: 5px;
+}
+
+/* 地图显示容器 - 响应式尺寸，支持缩放 */
+.map-display-container {
+  flex: 3;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: stretch;
+  background-color: transparent;
+  overflow: hidden;
+  position: relative;
+  margin-right: 5px;
+  height: 100%;
+}
+
+/* 游戏菜单 */
+.game-menu {
+  flex: 1;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: space-between;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 12px;
+  padding: 5px;
+  height: 100%;
+}
+
+.menu-item {
   flex: 1;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  padding: 5px;
-  margin: 2px;
-  background-color: transparent;
-  border: 2px solid #8B4513;
-  border-radius: 12px;
-  min-height: 320px;
-  overflow: visible;
-}
-
-/* 地图状态指示器 */
-.map-status-indicator {
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
   justify-content: center;
-  padding: 5px;
-  margin-bottom: 5px;
-  background-color: rgba(0, 0, 0, 0.7);
-  border: 1px solid #FFD700;
-  border-radius: 5px;
-}
-
-.map-status-text {
-  color: #FFD700;
-  font-size: 12px;
-  font-weight: bold;
-  text-align: center;
-  margin-bottom: 2px;
-}
-
-.map-info-text {
-  color: #ffffff;
-  font-size: 10px;
-  text-align: center;
-  margin-bottom: 2px;
-}
-
-.player-status-text {
-  color: #00ff00;
-  font-size: 10px;
-  text-align: center;
-}
-
-/* 地形信息面板 */
-.terrain-info-panel {
-  width: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  margin-top: 10px;
-  padding: 10px;
-  background-color: rgba(0, 0, 0, 0.3);
-  border-radius: 5px;
-}
-
-.terrain-info-text {
-  color: #ffffff;
-  font-size: 14px;
-  text-align: center;
-  margin-bottom: 5px;
-}
-
-.player-name-text {
-  color: #ffdd44;
-  font-size: 16px;
-  font-weight: bold;
-  text-align: center;
-}
-
-/* 地形加载提示 */
-.terrain-loading {
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 200px;
-  background-color: #3a3a3a;
-  border: 2px solid #8B4513;
+  background-color: rgba(139, 69, 19, 0.6);
+  border: 1px solid #8B4513;
   border-radius: 8px;
+  margin-bottom: 3px;
+  padding: 8px;
 }
 
-.loading-text {
-  font-size: 16px;
+
+.menu-icon {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 3px;
+}
+
+.menu-text {
+  font-size: 12px;
   color: #ffffff;
   text-align: center;
+  font-weight: bold;
 }
 
-/* 地形网格 */
-.terrain-grid {
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+/* 地图组件样式 - 可缩放的容器 */
+.map-component {
   width: 100%;
+  height: 100%;
+  transform-origin: center center;
+  position: relative;
+}
+
+
+
+/* 地形网格 - CSS Grid自适应布局 */
+.terrain-grid {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-rows: repeat(10, 1fr);
+  gap: 1px;
   background-color: transparent;
-  padding: 10px;
+  padding: 2px;
+  margin: 0;
 }
 
 .terrain-row {
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  margin: 2px 0;
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 1px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
 }
 
-.terrain-tile-container {
+.tile-container {
   position: relative;
-  width: 48px;
-  height: 48px;
-  margin: 1px;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  aspect-ratio: 1;
 }
 
-.terrain-tile-bg {
+.terrain-image {
   position: absolute;
   top: 0;
   left: 0;
-  width: 48px;
-  height: 48px;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
   object-fit: cover;
-}
-
-.terrain-tile-hill {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-}
-
-.terrain-tile-object {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-}
-
-.terrain-debug-text {
-  position: absolute;
-  top: 2px;
-  left: 2px;
-  color: red;
-  font-size: 8px;
-  font-weight: bold;
-  text-align: left;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 1px 2px;
-  border-radius: 2px;
-}
-
-.terrain-biome-text {
-  position: absolute;
-  bottom: 2px;
-  left: 2px;
-  color: blue;
-  font-size: 6px;
-  font-weight: bold;
-  text-align: left;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 1px 2px;
-  border-radius: 2px;
-}
-
-.terrain-hill-text {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  color: green;
-  font-size: 6px;
-  font-weight: bold;
-  text-align: right;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 1px 2px;
-  border-radius: 2px;
 }
 
 .player-character {
   position: absolute;
   top: 0;
   left: 0;
-  width: 48px;
-  height: 48px;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
-.player-body {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
+.character-symbol {
+  color: #00ff00;
+  font-size: 20px;
+  font-weight: bold;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.7);
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  line-height: 24px;
 }
-
-.player-head {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-}
-
-.player-hair {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-}
-
-.player-beard {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 48px;
-  height: 48px;
-  object-fit: cover;
-}
-
 
 
 .terrain-info-text {
@@ -2279,7 +2466,6 @@ export default {
   margin-left: -48px;
   margin-top: -48px;
 }
-
 
 
 .player-name-text {
@@ -2310,56 +2496,67 @@ export default {
 
 .player-character {
   position: absolute;
-  width: 16px;
-  height: 16px;
+  width: 32px;
+  height: 32px;
+  left: 50%;
+  top: 50%;
+  margin-left: -16px;
+  margin-top: -16px;
 }
 
-/* 位置信息面板 */
-.location-info {
+.player-body,
+.player-head,
+.player-hair,
+.player-beard {
   position: absolute;
-  bottom: 60px;
-  left: 5px;
-  right: 5px;
-  flex-direction: column;
-  padding: 10px;
-  background-color: rgba(0,0,0,0.9);
-  border: 2px solid #8B4513;
-  border-radius: 10px;
-  align-items: center;
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
 }
 
-.info-title {
-  font-size: 14px;
-  color: #ffffff;
-  font-weight: bold;
-  margin-bottom: 5px;
+.player-body {
+  z-index: 1;
 }
 
-.info-text {
-  font-size: 12px;
-  color: #cccccc;
-  margin-bottom: 2px;
+.player-head {
+  z-index: 2;
 }
+
+.player-hair {
+  z-index: 3;
+}
+
+.player-beard {
+  z-index: 4;
+}
+
+
 
 /* 底部导航 */
 .bottom-nav {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 50px;
   flex-direction: row;
-  justify-content: space-around;
+  justify-content: center;
+  align-items: center;
   background-color: rgba(0,0,0,0.9);
-  padding: 12px;
   border-top: 2px solid #8B4513;
   border-radius: 25px 25px 0 0;
-  margin: 0 5px;
+  z-index: 20;
+  padding: 0 20px;
 }
 
 .nav-btn {
-  width: 75px;
-  height: 32px;
   border-radius: 15px;
   background-color: rgba(139, 69, 19, 0.8);
-  font-size: 11px;
   color: #ffffff;
   border: 1px solid #8B4513;
+  margin: 0 5px;
+  height: 35px;
+  padding: 0 10px;
 }
 
 .nav-btn.primary {
@@ -2377,6 +2574,21 @@ export default {
   background-color: #4682B4;
   border-color: #4169E1;
   color: #ffffff;
+}
+
+/* 调试信息样式 */
+.debug-info {
+  position: absolute;
+  top: 0;
+  left: 0;
+  color: #FF0000;
+  font-size: 10px;
+  font-weight: bold;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 2px 4px;
+  border-radius: 3px;
+  z-index: 1000;
+  pointer-events: none;
 }
 
 </style>
