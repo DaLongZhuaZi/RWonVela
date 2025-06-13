@@ -1,0 +1,611 @@
+<template>
+  <div class="narrator-page">
+    <!-- 讲述人选择页面 -->
+    <div class="narrator-setup" show="{{ currentStage === 'narrator' }}">
+      <text class="page-title">选择故事讲述人</text>
+      
+      <div class="narrator-list">
+        <div class="narrator-card {{ selectedNarrator === 'Cassandra' ? 'selected' : '' }}" onclick="selectNarrator('Cassandra')">
+          <image class="narrator-image" src="/common/CassandraClassic.png"></image>
+          <div class="narrator-info">
+            <text class="narrator-name">卡桑德拉·经典</text>
+            <text class="narrator-desc">卡桑德拉按照经典的挑战和紧张感递增曲线创造故事事件。她会用危险事件推动你，然后给你喘息的空间，接着再次回来推动。</text>
+          </div>
+        </div>
+        
+        <div class="narrator-card {{ selectedNarrator === 'Phoebe' ? 'selected' : '' }}" onclick="selectNarrator('Phoebe')">
+          <image class="narrator-image" src="/common/PhoebeFriendly.png"></image>
+          <div class="narrator-info">
+            <text class="narrator-name">菲比·悠闲</text>
+            <text class="narrator-desc">菲比在灾难之间给你大量时间来建设殖民地。但要小心——在高难度下，她的打击和任何人一样猛烈。</text>
+          </div>
+        </div>
+        
+        <div class="narrator-card {{ selectedNarrator === 'Randy' ? 'selected' : '' }}" onclick="selectNarrator('Randy')">
+          <image class="narrator-image" src="/common/RandyRandom.png"></image>
+          <div class="narrator-info">
+            <text class="narrator-name">兰迪·随机</text>
+            <text class="narrator-desc">兰迪不遵循规则。他会生成随机事件，不在乎这些事件是构成胜利还是彻底绝望的故事。对他来说都是戏剧。警告：兰迪有时会发送极其困难或不公平的事件组合。</text>
+          </div>
+        </div>
+      </div>
+      
+      <div class="navigation">
+        <input class="nav-btn" type="button" value="返回" onclick="backToColonist" />
+        <input class="nav-btn primary" type="button" value="下一阶段" onclick="nextToStory" show="{{ selectedNarrator }}" />
+        <text class="validation-hint" show="{{ !selectedNarrator }}">请选择一个故事讲述人</text>
+      </div>
+    </div>
+    
+    <!-- 故事选择页面 -->
+    <div class="story-setup" show="{{ currentStage === 'story' }}">
+      <text class="page-title">选择故事类型</text>
+      
+      <div class="story-list">
+        <div class="story-card {{ selectedStory === 'Crashlanded' ? 'selected' : '' }}" onclick="selectStory('Crashlanded')">
+          <text class="story-name">迫降</text>
+          <text class="story-desc">你们三人在警报声和金属撕裂声中从冷冻睡眠棺中醒来。在飞船被撕裂之前，你们勉强到达了逃生舱。一段时间后，你们降落在这个未知的边缘世界上。</text>
+        </div>
+        
+        <div class="story-card {{ selectedStory === 'RichExplorer' ? 'selected' : '' }}" onclick="selectStory('RichExplorer')">
+          <text class="story-name">富有的探险家</text>
+          <text class="story-desc">人们说你离开闪光世界的家是疯了，但你总是渴望探索星空——在神经模拟器之外。现在你在冷冻睡眠中的长途旅行即将结束，降落在一个未知的边缘世界上看看它是什么样子。注意：由于你的起始角色将缺乏某些技能，这在游戏早期是一个特别困难的场景。</text>
+        </div>
+        
+        <div class="story-card {{ selectedStory === 'NakedBrutality' ? 'selected' : '' }}" onclick="selectStory('NakedBrutality')">
+          <text class="story-name">赤裸的暴行</text>
+          <text class="story-desc">你因为一个小手术而接受了麻醉。现在你在一个坠落舱中醒来，撞向一个遥远的星球。你赤身裸体，孤身一人，完全没有准备。你能生存下来吗？警告：这个场景没有任何公平可言——它极其困难，死亡可能因为任何原因发生。</text>
+        </div>
+      </div>
+      
+      <div class="navigation">
+        <input class="nav-btn" type="button" value="返回" onclick="backToNarrator" />
+        <input class="nav-btn primary" type="button" value="开始游戏" onclick="startGame" show="{{ selectedStory }}" />
+        <text class="validation-hint" show="{{ !selectedStory }}">请选择一个故事类型</text>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+
+export default {
+  props: {
+    colonistData: {
+      type: Object,
+      default: () => ({})
+    }
+  },
+  
+  private: {
+    currentStage: 'narrator', // 'narrator', 'story'
+    
+    // 讲述人选择
+    selectedNarrator: '',
+    
+    // 故事选择
+    selectedStory: ''
+  },
+  
+  onInit() {
+    console.log('接收到的殖民者数据:', this.colonistData)
+  },
+  
+  // 讲述人选择方法
+  selectNarrator(narrator) {
+    this.selectedNarrator = narrator
+  },
+  
+  backToColonist() {
+    router.push({
+      uri: '/pages/colonist',
+      params: {
+        colonistData: this.colonistData
+      }
+    })
+  },
+  
+  nextToStory() {
+    this.currentStage = 'story'
+  },
+  
+  // 故事选择方法
+  selectStory(story) {
+    this.selectedStory = story
+  },
+  
+  backToNarrator() {
+    this.currentStage = 'narrator'
+  },
+  
+  startGame() {
+    // 验证必要的选择是否完成
+    if (!this.selectedNarrator) {
+      console.log('❌ 讲述人选择验证失败: 未选择讲述人')
+      // 这里可以添加用户提示
+      return
+    }
+    
+    if (!this.selectedStory) {
+      console.log('❌ 故事选择验证失败: 未选择故事类型')
+      // 这里可以添加用户提示
+      return
+    }
+    
+    // 验证殖民者数据是否存在
+    if (!this.colonistData) {
+      console.log('❌ 游戏配置验证失败: 殖民者数据缺失')
+      // 这里可以添加用户提示并返回殖民者页面
+      return
+    }
+    
+    console.log('✅ 讲述人和故事选择验证通过，准备创建游戏配置')
+    
+    // 生成初始地图
+    console.log('🗺️ 开始生成初始地图...')
+    const terrainGenerator = require('../../common/terrainGenerator.js')
+    const generatedTerrain = terrainGenerator.generateTerrain()
+    
+    // 将地图数据转换为存档格式
+    const terrainGrid = []
+    for (let y = 0; y < generatedTerrain.grid.length; y++) {
+      terrainGrid[y] = []
+      for (let x = 0; x < generatedTerrain.grid[y].length; x++) {
+        const tile = generatedTerrain.grid[y][x]
+        terrainGrid[y][x] = `[${x},${y}] - ${tile.biome}${tile.hill ? ` (${tile.hill})` : ''}${tile.object ? ` [${tile.object}]` : ''}`
+      }
+    }
+    
+    console.log('✅ 初始地图生成完成:', {
+      biome: generatedTerrain.biome,
+      playerPosition: generatedTerrain.playerPosition,
+      gridSize: `${generatedTerrain.grid.length}x${generatedTerrain.grid[0].length}`
+    })
+    
+    // 验证生成的地图数据完整性
+    console.log('🔍 开始验证预生成地图数据完整性...')
+    
+    if (!generatedTerrain) {
+      console.log('❌ 地图数据验证失败: generatedTerrain为空')
+      return
+    }
+    
+    if (!generatedTerrain.grid || !Array.isArray(generatedTerrain.grid) || generatedTerrain.grid.length === 0) {
+      console.log('❌ 地图数据验证失败: grid数据无效', {
+        hasGrid: !!generatedTerrain.grid,
+        isArray: Array.isArray(generatedTerrain.grid),
+        length: generatedTerrain.grid ? generatedTerrain.grid.length : 0
+      })
+      return
+    }
+    
+    if (!generatedTerrain.biome || typeof generatedTerrain.biome !== 'string') {
+      console.log('❌ 地图数据验证失败: biome数据无效', {
+        hasBiome: !!generatedTerrain.biome,
+        biomeType: typeof generatedTerrain.biome,
+        biomeValue: generatedTerrain.biome
+      })
+      return
+    }
+    
+    if (!generatedTerrain.playerPosition || 
+        typeof generatedTerrain.playerPosition.x !== 'number' || 
+        typeof generatedTerrain.playerPosition.y !== 'number') {
+      console.log('❌ 地图数据验证失败: playerPosition数据无效', {
+        hasPlayerPosition: !!generatedTerrain.playerPosition,
+        playerPosition: generatedTerrain.playerPosition
+      })
+      return
+    }
+    
+    // 验证玩家位置是否在网格范围内
+    const gridWidth = generatedTerrain.grid[0].length
+    const gridHeight = generatedTerrain.grid.length
+    if (generatedTerrain.playerPosition.x < 0 || 
+        generatedTerrain.playerPosition.x >= gridWidth ||
+        generatedTerrain.playerPosition.y < 0 || 
+        generatedTerrain.playerPosition.y >= gridHeight) {
+      console.log('❌ 地图数据验证失败: 玩家位置超出网格范围', {
+        playerPosition: generatedTerrain.playerPosition,
+        gridSize: `${gridWidth}x${gridHeight}`
+      })
+      return
+    }
+    
+    // 验证网格中每个地块的数据结构
+    for (let y = 0; y < generatedTerrain.grid.length; y++) {
+      for (let x = 0; x < generatedTerrain.grid[y].length; x++) {
+        const tile = generatedTerrain.grid[y][x]
+        if (!tile || !tile.biome) {
+          console.log('❌ 地图数据验证失败: 地块数据无效', {
+            position: `[${x},${y}]`,
+            tile: tile
+          })
+          return
+        }
+      }
+    }
+    
+    console.log('✅ 预生成地图数据验证通过，数据结构完整')
+    
+    // 创建完整的游戏配置数据
+    const gameConfig = {
+      // 殖民者数据
+      colonist: this.colonistData,
+      
+      // 讲述人配置
+      narrator: {
+        type: this.selectedNarrator,
+        name: this.getNarratorName(this.selectedNarrator),
+        description: this.getNarratorDescription(this.selectedNarrator),
+        difficulty: this.getNarratorDifficulty(this.selectedNarrator),
+        eventFrequency: this.getNarratorEventFrequency(this.selectedNarrator)
+      },
+      
+      // 故事配置
+      story: {
+        type: this.selectedStory,
+        name: this.getStoryName(this.selectedStory),
+        description: this.getStoryDescription(this.selectedStory),
+        startingResources: this.getStartingResources(this.selectedStory),
+        startingColonists: this.getStartingColonists(this.selectedStory),
+        difficulty: this.getStoryDifficulty(this.selectedStory)
+      },
+      
+      // 游戏设置
+      gameSettings: {
+        difficulty: 'normal',
+        permadeath: false,
+        autoSave: true,
+        pauseOnLoad: true
+      },
+      
+      // 预生成的地图数据
+      preGeneratedTerrain: {
+        grid: generatedTerrain.grid,
+        biome: generatedTerrain.biome,
+        playerPosition: generatedTerrain.playerPosition,
+        terrainGrid: terrainGrid
+      },
+      
+      // 创建时间
+      createdAt: Date.now()
+    }
+    
+    console.log('📦 游戏配置数据创建完成:', {
+      colonist: gameConfig.colonist.name,
+      narrator: gameConfig.narrator.name,
+      story: gameConfig.story.name,
+      hasPreGeneratedTerrain: !!gameConfig.preGeneratedTerrain,
+      createdAt: new Date(gameConfig.createdAt).toLocaleString()
+    })
+    
+    // 最终验证preGeneratedTerrain数据完整性
+    console.log('🔍 最终验证preGeneratedTerrain数据完整性...')
+    
+    if (!gameConfig.preGeneratedTerrain) {
+      console.log('❌ 最终验证失败: preGeneratedTerrain对象为空')
+      return
+    }
+    
+    if (!gameConfig.preGeneratedTerrain.grid || !Array.isArray(gameConfig.preGeneratedTerrain.grid)) {
+      console.log('❌ 最终验证失败: preGeneratedTerrain.grid无效', {
+        hasGrid: !!gameConfig.preGeneratedTerrain.grid,
+        isArray: Array.isArray(gameConfig.preGeneratedTerrain.grid),
+        gridType: typeof gameConfig.preGeneratedTerrain.grid
+      })
+      return
+    }
+    
+    if (!gameConfig.preGeneratedTerrain.biome) {
+      console.log('❌ 最终验证失败: preGeneratedTerrain.biome无效', {
+        biome: gameConfig.preGeneratedTerrain.biome
+      })
+      return
+    }
+    
+    if (!gameConfig.preGeneratedTerrain.playerPosition) {
+      console.log('❌ 最终验证失败: preGeneratedTerrain.playerPosition无效', {
+        playerPosition: gameConfig.preGeneratedTerrain.playerPosition
+      })
+      return
+    }
+    
+    console.log('✅ 最终验证通过，preGeneratedTerrain数据完整:', {
+      gridSize: `${gameConfig.preGeneratedTerrain.grid.length}x${gameConfig.preGeneratedTerrain.grid[0].length}`,
+      biome: gameConfig.preGeneratedTerrain.biome,
+      playerPosition: gameConfig.preGeneratedTerrain.playerPosition,
+      hasTerrainGrid: !!gameConfig.preGeneratedTerrain.terrainGrid
+    })
+    
+    // 跳转到游戏页面
+    console.log('🚀 正在跳转到游戏页面...')
+    router.push({
+      uri: '/pages/game',
+      params: gameConfig
+    })
+  },
+  
+  // 获取讲述人信息的辅助方法
+  getNarratorName(type) {
+    const names = {
+      'Cassandra': '卡桑德拉·经典',
+      'Phoebe': '菲比·悠闲',
+      'Randy': '兰迪·随机'
+    }
+    return names[type] || '未知讲述人'
+  },
+  
+  getNarratorDescription(type) {
+    const descriptions = {
+      'Cassandra': '卡桑德拉按照经典的挑战和紧张感递增曲线创造故事事件。她会用危险事件推动你，然后给你喘息的空间，接着再次回来推动。',
+      'Phoebe': '菲比在灾难之间给你大量时间来建设殖民地。但要小心——在高难度下，她的打击和任何人一样猛烈。',
+      'Randy': '兰迪不遵循规则。他会生成随机事件，不在乎这些事件是构成胜利还是彻底绝望的故事。对他来说都是戏剧。警告：兰迪有时会发送极其困难或不公平的事件组合。'
+    }
+    return descriptions[type] || ''
+  },
+  
+  getNarratorDifficulty(type) {
+    const difficulties = {
+      'Cassandra': 'balanced',
+      'Phoebe': 'easy',
+      'Randy': 'chaotic'
+    }
+    return difficulties[type] || 'normal'
+  },
+  
+  getNarratorEventFrequency(type) {
+    const frequencies = {
+      'Cassandra': 'normal',
+      'Phoebe': 'low',
+      'Randy': 'random'
+    }
+    return frequencies[type] || 'normal'
+  },
+  
+  // 获取故事信息的辅助方法
+  getStoryName(type) {
+    const names = {
+      'Crashlanded': '迫降',
+      'RichExplorer': '富有的探险家',
+      'NakedBrutality': '赤裸的暴行'
+    }
+    return names[type] || '未知故事'
+  },
+  
+  getStoryDescription(type) {
+    const descriptions = {
+      'Crashlanded': '你们三人在警报声和金属撕裂声中从冷冻睡眠棺中醒来。在飞船被撕裂之前，你们勉强到达了逃生舱。一段时间后，你们降落在这个未知的边缘世界上。',
+      'RichExplorer': '人们说你离开闪光世界的家是疯了，但你总是渴望探索星空——在神经模拟器之外。现在你在冷冻睡眠中的长途旅行即将结束，降落在一个未知的边缘世界上看看它是什么样子。注意：由于你的起始角色将缺乏某些技能，这在游戏早期是一个特别困难的场景。',
+      'NakedBrutality': '你因为一个小手术而接受了麻醉。现在你在一个坠落舱中醒来，撞向一个遥远的星球。你赤身裸体，孤身一人，完全没有准备。你能生存下来吗？警告：这个场景没有任何公平可言——它极其困难，死亡可能因为任何原因发生。'
+    }
+    return descriptions[type] || ''
+  },
+  
+  getStartingResources(type) {
+    const resources = {
+      'Crashlanded': {
+        food: 75,
+        medicine: 30,
+        steel: 450,
+        wood: 300,
+        silver: 800,
+        components: 25
+      },
+      'RichExplorer': {
+        food: 30,
+        medicine: 50,
+        steel: 200,
+        wood: 100,
+        silver: 2500,
+        components: 50,
+        gold: 100
+      },
+      'NakedBrutality': {
+        food: 0,
+        medicine: 0,
+        steel: 0,
+        wood: 0,
+        silver: 0,
+        components: 0
+      }
+    }
+    return resources[type] || {}
+  },
+  
+  getStartingColonists(type) {
+    const colonists = {
+      'Crashlanded': 3,
+      'RichExplorer': 1,
+      'NakedBrutality': 1
+    }
+    return colonists[type] || 1
+  },
+  
+  getStoryDifficulty(type) {
+    const difficulties = {
+      'Crashlanded': 'normal',
+      'RichExplorer': 'hard',
+      'NakedBrutality': 'extreme'
+    }
+    return difficulties[type] || 'normal'
+  }
+}
+</script>
+
+<style>
+.narrator-page {
+  flex-direction: column;
+  background-image: url('/common/MindbendCarpet_a_512.png');
+  background-size: cover;
+  width: 100%;
+  min-height: 100%;
+  padding: 10px;
+}
+
+.page-title {
+  font-size: 20px;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+/* 讲述人选择样式 */
+.narrator-setup {
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  justify-content: flex-start;
+}
+
+.narrator-list {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  padding-bottom: 20px;
+}
+
+.narrator-card {
+  width: 320px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: rgba(0,0,0,0.7);
+  border-radius: 8px;
+  border: 2px solid #8B4513;
+  flex-direction: column;
+  align-items: center;
+  min-height: 180px;
+}
+
+.narrator-card.selected {
+  border-color: #228B22;
+  background-color: rgba(34, 139, 34, 0.3);
+}
+
+.narrator-image {
+  width: 90px;
+  height: 90px;
+  margin-bottom: 12px;
+  border-radius: 4px;
+  object-fit: contain;
+}
+
+.narrator-info {
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.narrator-name {
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 10px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.narrator-desc {
+  font-size: 12px;
+  color: #cccccc;
+  line-height: 1.4;
+  text-align: center;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+/* 故事选择样式 */
+.story-setup {
+  flex-direction: column;
+  width: 100%;
+  min-height: 100%;
+  justify-content: flex-start;
+}
+
+.story-list {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  padding-bottom: 20px;
+}
+
+.story-card {
+  width: 320px;
+  margin-bottom: 15px;
+  padding: 15px;
+  background-color: rgba(0,0,0,0.7);
+  border-radius: 8px;
+  border: 2px solid #8B4513;
+  flex-direction: column;
+  align-items: center;
+  min-height: 120px;
+}
+
+.story-card.selected {
+  border-color: #228B22;
+  background-color: rgba(34, 139, 34, 0.3);
+}
+
+.story-name {
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 12px;
+  font-weight: bold;
+  text-align: center;
+}
+
+.story-desc {
+  font-size: 12px;
+  color: #cccccc;
+  line-height: 1.4;
+  text-align: center;
+  word-wrap: break-word;
+  flex: 1;
+}
+
+/* 导航按钮样式 */
+.navigation {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 20px;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.nav-btn {
+  width: 100px;
+  height: 40px;
+  margin: 0 10px;
+  border-radius: 6px;
+  background-color: rgba(139, 69, 19, 0.8);
+  font-size: 14px;
+  color: #ffffff;
+  border: 2px solid #8B4513;
+  text-align: center;
+}
+
+.nav-btn.primary {
+  background-color: rgba(34, 139, 34, 0.8);
+  border-color: #228B22;
+}
+
+.nav-btn.primary {
+  background-color: #32CD32;
+  border-color: #228B22;
+}
+
+.validation-hint {
+  font-size: 12px;
+  color: #FFD700;
+  text-align: center;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: rgba(255, 215, 0, 0.1);
+  border-radius: 4px;
+  border: 1px solid #FFD700;
+}
+</style>

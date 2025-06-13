@@ -1,0 +1,794 @@
+<template>
+  <div class="save-test-page">
+    <text class="page-title">存档系统测试</text>
+    
+    <!-- 测试状态显示 -->
+    <div class="status-section">
+      <text class="section-title">测试状态</text>
+      <div class="status-info">
+        <text class="status-text">存档数量: {{ storageInfo.totalSaves }}</text>
+        <text class="status-text">自动存档: {{ storageInfo.hasAutoSave ? '存在' : '不存在' }}</text>
+        <text class="status-text">测试结果: {{ testResult }}</text>
+      </div>
+    </div>
+
+    <!-- 基础操作测试 -->
+    <div class="test-section">
+      <text class="section-title">基础操作测试</text>
+      <div class="test-buttons">
+        <input class="test-btn" type="button" value="创建测试存档" onclick="createTestSave" />
+        <input class="test-btn" type="button" value="加载测试存档" onclick="loadTestSave" />
+        <input class="test-btn" type="button" value="删除测试存档" onclick="deleteTestSave" />
+        <input class="test-btn" type="button" value="自动存档测试" onclick="testAutoSave" />
+      </div>
+    </div>
+
+    <!-- 高级功能测试 -->
+    <div class="test-section">
+      <text class="section-title">高级功能测试</text>
+      <div class="test-buttons">
+        <input class="test-btn" type="button" value="获取统计" onclick="getStatistics" />
+        <input class="test-btn" type="button" value="验证存档" onclick="validateSave" />
+        <input class="test-btn" type="button" value="压缩测试" onclick="testCompression" />
+      </div>
+      <div class="test-buttons">
+        <input class="test-btn" type="button" value="导出存档" onclick="exportSave" />
+        <input class="test-btn" type="button" value="导入存档" onclick="importSave" />
+        <input class="test-btn" type="button" value="清理过期" onclick="cleanupOldSaves" />
+      </div>
+    </div>
+
+    <!-- 存档列表 -->
+    <div class="save-list-section">
+      <text class="section-title">存档列表 ({{ saveList.length }})</text>
+      <div class="save-list">
+        <div class="save-item" for="{{ saveList }}" onclick="selectSave($item.name)">
+          <div class="save-info">
+            <text class="save-name">{{ $item.name }}</text>
+            <text class="save-time">{{ formatTime($item.timestamp) }}</text>
+            <text class="save-selected" show="{{ currentSaveName === $item.name }}">✓</text>
+          </div>
+          <div class="save-actions">
+            <input class="action-btn load" type="button" value="加载" onclick="loadSave($item.name)" />
+            <input class="action-btn delete" type="button" value="删除" onclick="deleteSave($item.name)" />
+          </div>
+        </div>
+        <text class="empty-text" show="{{ saveList.length === 0 }}">暂无存档</text>
+      </div>
+    </div>
+
+    <!-- 统计信息 -->
+    <div class="statistics-section" show="{{ saveStatistics }}">
+      <text class="section-title">存档统计</text>
+      <div class="stats-grid">
+        <div class="stat-item">
+          <text class="stat-label">总存档数:</text>
+          <text class="stat-value">{{ saveStatistics.totalSaves }}</text>
+        </div>
+        <div class="stat-item">
+          <text class="stat-label">自动存档:</text>
+          <text class="stat-value">{{ saveStatistics.hasAutoSave ? '已启用' : '未启用' }}</text>
+        </div>
+        <div class="stat-item">
+          <text class="stat-label">估算大小:</text>
+          <text class="stat-value">{{ saveStatistics.estimatedSize }}</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 验证结果 -->
+    <div class="validation-section" show="{{ validationResult }}">
+      <text class="section-title">验证结果</text>
+      <div class="validation-result">
+        <text class="validation-status {{ validationResult.isValid ? 'valid' : 'invalid' }}">
+          {{ validationResult.isValid ? '✓ 验证通过' : '✗ 验证失败' }}
+        </text>
+        <div class="validation-details" show="{{ validationResult.errors.length > 0 }}">
+          <text class="error-title">错误:</text>
+          <text class="error-item" for="{{ validationResult.errors }}">• {{ $item }}</text>
+        </div>
+        <div class="validation-details" show="{{ validationResult.warnings.length > 0 }}">
+          <text class="warning-title">警告:</text>
+          <text class="warning-item" for="{{ validationResult.warnings }}">• {{ $item }}</text>
+        </div>
+      </div>
+    </div>
+
+    <!-- 批量测试 -->
+    <div class="batch-test-section">
+      <text class="section-title">批量测试</text>
+      <div class="test-buttons">
+        <input class="test-btn" type="button" value="创建多个存档" onclick="createMultipleSaves" />
+        <input class="test-btn" type="button" value="压力测试" onclick="stressTest" />
+        <input class="test-btn" type="button" value="清空所有存档" onclick="clearAllSaves" />
+        <input class="test-btn" type="button" value="设置测试" onclick="testSettings" />
+      </div>
+    </div>
+
+    <!-- 测试日志 -->
+    <div class="log-section">
+      <text class="section-title">测试日志</text>
+      <div class="log-container">
+        <text class="log-item" for="{{ testLogs }}">{{ $item }}</text>
+        <text class="empty-text" show="{{ testLogs.length === 0 }}">暂无日志</text>
+      </div>
+    </div>
+
+    <!-- 导航 -->
+    <div class="navigation">
+      <input class="nav-btn" type="button" value="刷新状态" onclick="refreshStatus" />
+      <input class="nav-btn" type="button" value="清空日志" onclick="clearLogs" />
+      <input class="nav-btn" type="button" value="返回" onclick="goBack" />
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import saveManager from "../../common/saveManager.js"
+import saveUtils from "../../common/saveUtils.js"
+
+export default {
+  private: {
+    storageInfo: {
+      totalSaves: 0,
+      hasAutoSave: false,
+      oldestSave: null,
+      newestSave: null
+    },
+    saveList: [],
+    testResult: '等待测试',
+    testLogs: [],
+    testCounter: 0,
+    isLoading: false,
+    saveStatistics: null,
+    validationResult: null,
+    exportData: null,
+    currentSaveName: null
+  },
+
+  onInit() {
+    this.refreshStatus()
+    this.addLog('存档测试页面初始化完成')
+  },
+
+  // 刷新状态信息
+  refreshStatus() {
+    saveManager.getStorageInfo().then(info => {
+      this.storageInfo = info
+      this.addLog('状态信息已刷新')
+    }).catch(error => {
+      this.addLog(`刷新状态失败: ${error.message}`)
+    })
+
+    saveManager.getSaveList().then(list => {
+      this.saveList = list
+    }).catch(error => {
+      this.addLog(`获取存档列表失败: ${error.message}`)
+    })
+  },
+
+  // 创建测试存档
+  createTestSave() {
+    this.testCounter++
+    const testData = {
+      colonist: {
+        name: `测试殖民者${this.testCounter}`,
+        gender: 'male',
+        skills: { construction: 5, research: 3, combat: 7 }
+      },
+      narrator: 'Cassandra',
+      story: 'Crashlanded',
+      gameState: {
+        day: this.testCounter,
+        resources: { food: 50, materials: 30, energy: 100 },
+        events: [`第${this.testCounter}天的测试事件`]
+      }
+    }
+
+    const saveName = `测试存档${this.testCounter}`
+    
+    saveManager.saveGame(saveName, testData).then(() => {
+      this.testResult = '创建成功'
+      this.addLog(`测试存档创建成功: ${saveName}`)
+      this.refreshStatus()
+    }).catch(error => {
+      this.testResult = '创建失败'
+      this.addLog(`测试存档创建失败: ${error.message}`)
+    })
+  },
+
+  // 加载测试存档
+  loadTestSave() {
+    if (this.saveList.length === 0) {
+      this.addLog('没有可加载的存档')
+      return
+    }
+
+    const latestSave = this.saveList[0]
+    saveManager.loadGame(latestSave.name).then(saveData => {
+      this.testResult = '加载成功'
+      this.addLog(`存档加载成功: ${latestSave.name}`)
+      this.addLog(`存档数据: ${JSON.stringify(saveData.data).substring(0, 100)}...`)
+    }).catch(error => {
+      this.testResult = '加载失败'
+      this.addLog(`存档加载失败: ${error.message}`)
+    })
+  },
+
+  // 删除测试存档
+  deleteTestSave() {
+    if (this.saveList.length === 0) {
+      this.addLog('没有可删除的存档')
+      return
+    }
+
+    const latestSave = this.saveList[0]
+    saveManager.deleteSave(latestSave.name).then(() => {
+      this.testResult = '删除成功'
+      this.addLog(`存档删除成功: ${latestSave.name}`)
+      this.refreshStatus()
+    }).catch(error => {
+      this.testResult = '删除失败'
+      this.addLog(`存档删除失败: ${error.message}`)
+    })
+  },
+
+  // 测试自动存档
+  testAutoSave() {
+    const autoSaveData = {
+      type: 'auto',
+      timestamp: Date.now(),
+      gameState: {
+        day: 999,
+        resources: { food: 999, materials: 999, energy: 999 },
+        note: '这是自动存档测试数据'
+      }
+    }
+
+    saveManager.saveGame('自动存档', autoSaveData, true).then(() => {
+      this.testResult = '自动存档成功'
+      this.addLog('自动存档测试成功')
+      this.refreshStatus()
+    }).catch(error => {
+      this.testResult = '自动存档失败'
+      this.addLog(`自动存档测试失败: ${error.message}`)
+    })
+  },
+
+  // 加载指定存档
+  loadSave(saveName) {
+    saveManager.loadGame(saveName).then(saveData => {
+      this.addLog(`存档 ${saveName} 加载成功`)
+      this.addLog(`数据预览: ${JSON.stringify(saveData.data).substring(0, 50)}...`)
+    }).catch(error => {
+      this.addLog(`存档 ${saveName} 加载失败: ${error.message}`)
+    })
+  },
+
+  // 删除指定存档
+  deleteSave(saveName) {
+    saveManager.deleteSave(saveName).then(() => {
+      this.addLog(`存档 ${saveName} 删除成功`)
+      this.refreshStatus()
+    }).catch(error => {
+      this.addLog(`存档 ${saveName} 删除失败: ${error.message}`)
+    })
+  },
+
+  // 创建多个存档
+  createMultipleSaves() {
+    const promises = []
+    for (let i = 1; i <= 5; i++) {
+      const testData = {
+        batchTest: true,
+        index: i,
+        data: `批量测试数据 ${i}`,
+        timestamp: Date.now() + i * 1000
+      }
+      promises.push(saveManager.saveGame(`批量测试${i}`, testData))
+    }
+
+    Promise.all(promises).then(() => {
+      this.testResult = '批量创建成功'
+      this.addLog('批量创建5个存档成功')
+      this.refreshStatus()
+    }).catch(error => {
+      this.testResult = '批量创建失败'
+      this.addLog(`批量创建失败: ${error.message}`)
+    })
+  },
+
+  // 压力测试
+  stressTest() {
+    this.addLog('开始压力测试...')
+    const startTime = Date.now()
+    let successCount = 0
+    let failCount = 0
+
+    const testPromises = []
+    for (let i = 1; i <= 10; i++) {
+      const promise = saveManager.saveGame(`压力测试${i}`, {
+        stress: true,
+        index: i,
+        data: 'x'.repeat(1000) // 1KB数据
+      }).then(() => {
+        successCount++
+      }).catch(() => {
+        failCount++
+      })
+      testPromises.push(promise)
+    }
+
+    Promise.all(testPromises).then(() => {
+      const endTime = Date.now()
+      const duration = endTime - startTime
+      this.testResult = `压力测试完成: ${successCount}成功, ${failCount}失败`
+      this.addLog(`压力测试完成，耗时: ${duration}ms`)
+      this.addLog(`成功: ${successCount}, 失败: ${failCount}`)
+      this.refreshStatus()
+    })
+  },
+
+  // 清空所有存档
+  clearAllSaves() {
+    saveManager.clearAllSaves().then(() => {
+      this.testResult = '清空成功'
+      this.addLog('所有存档已清空')
+      this.refreshStatus()
+    }).catch(error => {
+      this.testResult = '清空失败'
+      this.addLog(`清空存档失败: ${error.message}`)
+    })
+  },
+
+  // 测试设置功能
+  testSettings() {
+    const testSettings = {
+      autoSave: false,
+      autoSaveInterval: 600000,
+      soundEnabled: false,
+      difficulty: 'hard',
+      testFlag: true
+    }
+
+    saveManager.saveSettings(testSettings).then(() => {
+      this.addLog('设置保存成功')
+      return saveManager.loadSettings()
+    }).then(loadedSettings => {
+      this.addLog(`设置加载成功: ${JSON.stringify(loadedSettings)}`)
+      this.testResult = '设置测试成功'
+    }).catch(error => {
+      this.addLog(`设置测试失败: ${error.message}`)
+      this.testResult = '设置测试失败'
+    })
+  },
+
+  // 格式化时间
+  formatTime(timestamp) {
+    const date = new Date(timestamp)
+    return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`
+  },
+
+  // 添加日志
+  addLog(message) {
+    const timestamp = new Date().toLocaleTimeString()
+    this.testLogs.unshift(`[${timestamp}] ${message}`)
+    // 限制日志数量
+    if (this.testLogs.length > 50) {
+      this.testLogs = this.testLogs.slice(0, 50)
+    }
+  },
+
+  // 清空日志
+  clearLogs() {
+    this.testLogs = []
+    this.addLog('日志已清空')
+  },
+
+  // 获取存档统计信息
+  async getStatistics() {
+    this.addLog('获取存档统计信息...')
+    try {
+      const stats = await saveUtils.getSaveStatistics()
+      this.saveStatistics = stats
+      this.addLog(`统计信息获取成功: 总存档数 ${stats.totalSaves}, 自动存档 ${stats.hasAutoSave ? '已启用' : '未启用'}`)
+    } catch (error) {
+      this.addLog(`获取统计信息失败: ${error.message}`)
+    }
+  },
+
+  // 验证存档数据
+  async validateSave() {
+    if (!this.currentSaveName) {
+      this.addLog('请先选择一个存档')
+      return
+    }
+
+    this.addLog(`验证存档: ${this.currentSaveName}`)
+    try {
+      const saveData = await saveManager.loadGame(this.currentSaveName)
+      const validation = saveUtils.validateSaveData(saveData)
+      this.validationResult = validation
+      
+      if (validation.isValid) {
+        this.addLog('存档验证通过')
+      } else {
+        this.addLog(`存档验证失败: ${validation.errors.join(', ')}`)
+      }
+      
+      if (validation.warnings.length > 0) {
+        this.addLog(`警告: ${validation.warnings.join(', ')}`)
+      }
+    } catch (error) {
+      this.addLog(`验证失败: ${error.message}`)
+    }
+  },
+
+  // 导出存档
+  async exportSave() {
+    if (!this.currentSaveName) {
+      this.addLog('请先选择一个存档')
+      return
+    }
+
+    this.addLog(`导出存档: ${this.currentSaveName}`)
+    try {
+      const result = await saveUtils.exportSave(this.currentSaveName)
+      if (result.success) {
+        this.exportData = result.data
+        this.addLog('存档导出成功')
+      } else {
+        this.addLog(`导出失败: ${result.error}`)
+      }
+    } catch (error) {
+      this.addLog(`导出失败: ${error.message}`)
+    }
+  },
+
+  // 导入存档
+  async importSave() {
+    if (!this.exportData) {
+      this.addLog('没有可导入的存档数据')
+      return
+    }
+
+    const newSaveName = `导入_${Date.now()}`
+    this.addLog(`导入存档为: ${newSaveName}`)
+    try {
+      const result = await saveUtils.importSave(this.exportData, newSaveName)
+      if (result.success) {
+        this.addLog('存档导入成功')
+        if (result.warnings && result.warnings.length > 0) {
+          this.addLog(`警告: ${result.warnings.join(', ')}`)
+        }
+        this.refreshStatus()
+      } else {
+        this.addLog(`导入失败: ${result.error}`)
+      }
+    } catch (error) {
+      this.addLog(`导入失败: ${error.message}`)
+    }
+  },
+
+  // 清理过期存档
+  async cleanupOldSaves() {
+    this.addLog('清理过期存档...')
+    try {
+      const result = await saveUtils.cleanupOldSaves()
+      if (result.success) {
+        this.addLog(`清理完成: 删除 ${result.deletedCount} 个存档, 保留 ${result.remainingCount} 个存档`)
+        this.refreshStatus()
+      } else {
+        this.addLog(`清理失败: ${result.error}`)
+      }
+    } catch (error) {
+      this.addLog(`清理失败: ${error.message}`)
+    }
+  },
+
+  // 压缩测试
+  testCompression() {
+    this.addLog('测试数据压缩...')
+    const testData = {
+      name: '测试存档',
+      data: {
+        colonistCount: 5,
+        resources: { food: 100, materials: 50, energy: 75 },
+        gameLog: ['事件1', '事件2', '事件3']
+      }
+    }
+    
+    const originalSize = JSON.stringify(testData).length
+    const compressed = saveUtils.compressData(testData)
+    const compressedSize = compressed.length
+    const decompressed = saveUtils.decompressData(compressed)
+    
+    const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1)
+    this.addLog(`压缩测试完成: 原始 ${originalSize} 字节, 压缩后 ${compressedSize} 字节, 压缩率 ${compressionRatio}%`)
+    
+    // 验证数据完整性
+    const isIntact = JSON.stringify(testData) === JSON.stringify(decompressed)
+    this.addLog(`数据完整性: ${isIntact ? '通过' : '失败'}`)
+  },
+
+  // 选择存档
+  selectSave(saveName) {
+    this.currentSaveName = saveName
+    this.addLog(`选择存档: ${saveName}`)
+  },
+
+  // 返回
+  goBack() {
+    router.back()
+  }
+}
+</script>
+
+<style>
+.save-test-page {
+  flex-direction: column;
+  background-color: #1a1a1a;
+  width: 100%;
+  min-height: 100%;
+  padding: 10px;
+}
+
+.page-title {
+  font-size: 18px;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 15px;
+  font-weight: bold;
+}
+
+.section-title {
+  font-size: 14px;
+  color: #ffcc00;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+/* 状态区域 */
+.status-section {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+
+.status-info {
+  flex-direction: column;
+}
+
+.status-text {
+  font-size: 12px;
+  color: #cccccc;
+  margin-bottom: 3px;
+}
+
+/* 测试区域 */
+.test-section,
+.batch-test-section {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.test-buttons {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.test-btn {
+  width: 150px;
+  height: 35px;
+  margin: 3px;
+  border-radius: 4px;
+  background-color: #4CAF50;
+  color: #ffffff;
+  font-size: 11px;
+  border: none;
+  text-align: center;
+}
+
+/* 存档列表 */
+.save-list-section {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+}
+
+.save-list {
+  flex-direction: column;
+  max-height: 200px;
+}
+
+.save-item {
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px;
+  margin-bottom: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+}
+
+
+
+.save-selected {
+  color: #4CAF50;
+  font-weight: bold;
+  margin-left: 8px;
+}
+
+/* 统计信息样式 */
+.statistics-section {
+  margin-bottom: 16px;
+}
+
+.stats-grid {
+  flex-direction: column;
+}
+
+.stat-item {
+  flex-direction: row;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.stat-label {
+  color: #cccccc;
+  font-size: 14px;
+}
+
+.stat-value {
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+/* 验证结果样式 */
+.validation-section {
+  margin-bottom: 16px;
+}
+
+.validation-result {
+  flex-direction: column;
+}
+
+.validation-status {
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 8px;
+}
+
+.validation-status.valid {
+  color: #4CAF50;
+}
+
+.validation-status.invalid {
+  color: #f44336;
+}
+
+.validation-details {
+  margin-top: 8px;
+  flex-direction: column;
+}
+
+.error-title, .warning-title {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.error-title {
+  color: #f44336;
+}
+
+.warning-title {
+  color: #ff9800;
+}
+
+.error-item, .warning-item {
+  font-size: 12px;
+  margin-bottom: 2px;
+  padding-left: 8px;
+}
+
+.error-item {
+  color: #ffcdd2;
+}
+
+.warning-item {
+  color: #ffe0b2;
+}
+
+.save-info {
+  flex-direction: column;
+  flex: 1;
+}
+
+.save-name {
+  font-size: 12px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.save-time {
+  font-size: 10px;
+  color: #999999;
+}
+
+.save-actions {
+  flex-direction: row;
+}
+
+.action-btn {
+  width: 40px;
+  height: 25px;
+  margin-left: 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  border: none;
+  text-align: center;
+}
+
+.action-btn.load {
+  background-color: #2196F3;
+  color: #ffffff;
+}
+
+.action-btn.delete {
+  background-color: #f44336;
+  color: #ffffff;
+}
+
+/* 日志区域 */
+.log-section {
+  margin-bottom: 15px;
+  padding: 10px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-radius: 6px;
+}
+
+.log-container {
+  flex-direction: column;
+  max-height: 150px;
+}
+
+.log-item {
+  font-size: 10px;
+  color: #cccccc;
+  margin-bottom: 2px;
+  line-height: 1.2;
+}
+
+.empty-text {
+  font-size: 12px;
+  color: #666666;
+  text-align: center;
+  padding: 10px;
+}
+
+/* 导航 */
+.navigation {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 10px;
+}
+
+.nav-btn {
+  width: 80px;
+  height: 35px;
+  margin: 0 5px;
+  border-radius: 4px;
+  background-color: #607D8B;
+  color: #ffffff;
+  font-size: 11px;
+  border: none;
+  text-align: center;
+}
+</style>

@@ -1,0 +1,721 @@
+<template>
+  <div class="colonist-page">
+    <!-- 殖民者定制页面 -->
+    <text class="page-title">殖民者定制</text>
+    
+    <div class="customization-list">
+      <!-- 性别选择卡片 -->
+      <div class="customization-card {{ selectedGender ? 'selected' : '' }}">
+        <div class="card-header" onclick="toggleGenderOptions()">
+          <text class="card-title">性别</text>
+          <text class="card-value">{{ selectedGender === 'male' ? '男性' : selectedGender === 'female' ? '女性' : '未选择' }}</text>
+        </div>
+        <div class="part-preview">
+          <image class="part-image" src="{{ characterPaths.head }}" show="{{ selectedGender }}"></image>
+        </div>
+        <div class="options-list" show="{{ showGenderOptions }}">
+          <div class="option-item {{ selectedGender === option.value ? 'selected' : '' }}" for="{{ (index, option) in genderOptions }}" onclick="selectGenderOption(option.value)">
+            <text class="option-name">{{ option.name }}</text>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 体型选择卡片 -->
+      <div class="customization-card {{ selectedBodyType ? 'selected' : '' }}">
+        <div class="card-header" onclick="toggleBodyTypeOptions()">
+          <text class="card-title">体型</text>
+          <text class="card-value">{{ getBodyTypeName(selectedBodyType) }}</text>
+        </div>
+        <div class="part-preview">
+          <image class="part-image" src="{{ characterPaths.body }}" show="{{ selectedBodyType }}"></image>
+        </div>
+        <div class="options-list" show="{{ showBodyTypeOptions }}">
+          <div class="option-item {{ selectedBodyType === option.value ? 'selected' : '' }}" for="{{ (index, option) in bodyTypeOptions }}" onclick="selectBodyTypeOption(option.value)">
+            <text class="option-name">{{ option.name }}</text>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 发型选择卡片 -->
+      <div class="customization-card {{ selectedHair ? 'selected' : '' }}">
+        <div class="card-header" onclick="toggleHairOptions()">
+          <text class="card-title">发型</text>
+          <text class="card-value">{{ getHairName(selectedHair) }}</text>
+        </div>
+        <div class="part-preview">
+          <image class="part-image" src="{{ characterPaths.hair }}" show="{{ selectedHair && selectedHair !== 'Shaved' }}"></image>
+          <text class="no-hair-text" show="{{ selectedHair === 'Shaved' }}">光头</text>
+        </div>
+        <div class="options-list" show="{{ showHairOptions }}">
+          <div class="option-item {{ selectedHair === option.value ? 'selected' : '' }}" for="{{ (index, option) in hairOptions }}" onclick="selectHairOption(option.value)">
+            <text class="option-name">{{ option.name }}</text>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 胡须选择卡片 -->
+      <div class="customization-card {{ selectedBeard !== '' ? 'selected' : '' }}">
+        <div class="card-header" onclick="toggleBeardOptions()">
+          <text class="card-title">胡须</text>
+          <text class="card-value">{{ getBeardName(selectedBeard) }}</text>
+        </div>
+        <div class="part-preview">
+          <image class="part-image" src="{{ characterPaths.beard }}" show="{{ selectedBeard }}"></image>
+          <text class="no-beard-text" show="{{ !selectedBeard }}">无胡须</text>
+        </div>
+        <div class="options-list" show="{{ showBeardOptions }}">
+          <div class="option-item {{ selectedBeard === option.value ? 'selected' : '' }}" for="{{ (index, option) in beardOptions }}" onclick="selectBeardOption(option.value)">
+            <text class="option-name">{{ option.name }}</text>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 技能卡片 -->
+      <div class="customization-card selected">
+        <div class="card-header">
+          <text class="card-title">技能</text>
+          <text class="card-value">随机生成</text>
+        </div>
+        <div class="skills-preview">
+          <div class="skill-item" for="{{ (index, skill) in skills }}">
+            <text class="skill-name">{{ skill.name }}</text>
+            <div class="skill-progress">
+              <div class="skill-bar">
+                <div class="skill-fill" style="width: {{ skill.level * 5 }}%"></div>
+              </div>
+              <text class="skill-level">{{ skill.level }}</text>
+            </div>
+          </div>
+        </div>
+      </div>
+      
+      <!-- 完整角色预览 -->
+      <div class="customization-card selected" show="{{ selectedGender && selectedBodyType && selectedHair }}">
+        <div class="card-header">
+          <text class="card-title">完整预览</text>
+          <text class="card-value">最终效果</text>
+        </div>
+        <div class="character-preview">
+          <image class="character-image" src="{{ characterPaths.body }}"></image>
+          <image class="character-image" src="{{ characterPaths.head }}"></image>
+          <image class="character-image" src="{{ characterPaths.hair }}" show="{{ characterPaths.hair }}"></image>
+          <image class="character-image" src="{{ characterPaths.beard }}" show="{{ characterPaths.beard }}"></image>
+        </div>
+      </div>
+      
+      <!-- 随机名称生成器 -->
+      <div class="customization-card {{ selectedName ? 'selected' : '' }}" show="{{ selectedGender && selectedBodyType && selectedHair }}">
+        <div class="card-header">
+          <text class="card-title">角色姓名</text>
+          <text class="card-value">{{ selectedName || '点击生成' }}</text>
+        </div>
+        <div class="name-generator">
+           <text class="name-display">{{ selectedName || '未生成' }}</text>
+           <div class="name-buttons">
+             <input class="generate-btn" type="button" value="生成" onclick="generateRandomName" show="{{ !selectedName }}" />
+             <input class="generate-btn secondary" type="button" value="换一个" onclick="generateRandomName" show="{{ selectedName }}" />
+           </div>
+         </div>
+      </div>
+    </div>
+    
+    <!-- 导航按钮 -->
+    <div class="navigation">
+      <input class="nav-btn" type="button" value="返回" onclick="backToIndex" />
+      <input class="nav-btn primary" type="button" value="下一阶段" onclick="goToNarrator" show="{{ selectedGender && selectedBodyType && selectedHair && selectedName }}" />
+      <text class="validation-hint" show="{{ !selectedGender || !selectedBodyType || !selectedHair || !selectedName }}">请完成所有必要的选择：性别、体型、发型和姓名</text>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import nameGenerator from "../../common/nameGenerator.js"
+
+export default {
+  data: {
+    selectedGender: '',
+    selectedBodyType: '',
+    selectedHair: '',
+    selectedBeard: '',
+    selectedName: '',
+    characterPaths: {
+      body: '/common/human/bodies/Naked_Male_south.png',
+      head: '/common/human/heads/Male/Male_Average_Normal_south.png',
+      hair: '',
+      beard: ''
+    },
+    skills: [],
+    
+    // 选项数据
+    genderOptions: [
+      { value: 'male', name: '男性', body: '/common/human/bodies/Naked_Male_south.png', head: '/common/human/heads/Male/Male_Average_Normal_south.png' },
+      { value: 'female', name: '女性', body: '/common/human/bodies/Naked_Female_south.png', head: '/common/human/heads/Female/Female_Average_Normal_south.png' }
+    ],
+    bodyTypeOptions: [
+      { value: 'Naked_Male', name: '标准男性', path: '/common/human/bodies/Naked_Male_south.png' },
+      { value: 'Naked_Female', name: '标准女性', path: '/common/human/bodies/Naked_Female_south.png' },
+      { value: 'Naked_Thin', name: '瘦弱', path: '/common/human/bodies/Naked_Thin_south.png' },
+      { value: 'Naked_Hulk', name: '强壮', path: '/common/human/bodies/Naked_Hulk_south.png' },
+      { value: 'Naked_Fat', name: '肥胖', path: '/common/human/bodies/Naked_Fat_south.png' }
+    ],
+    hairOptions: [
+      { value: 'Shaved', name: '光头', path: '' },
+      { value: 'Afro', name: '爆炸头', path: '/common/human/haris/Afro_south.png' },
+      { value: 'Bob', name: '波波头', path: '/common/human/haris/Bob_south.png' },
+      { value: 'Mohawk', name: '莫西干头', path: '/common/human/haris/Mohawk_south.png' },
+      { value: 'Long', name: '长发', path: '/common/human/haris/Long_south.png' },
+      { value: 'Ponytails', name: '马尾辫', path: '/common/human/haris/Ponytails_south.png' },
+      { value: 'Curly', name: '卷发', path: '/common/human/haris/Curly_south.png' },
+      { value: 'Decent', name: '整齐', path: '/common/human/haris/Decent_south.png' },
+      { value: 'Flowy', name: '飘逸', path: '/common/human/haris/Flowy_south.png' },
+      { value: 'Mess', name: '凌乱', path: '/common/human/haris/Mess_south.png' }
+    ],
+    beardOptions: [
+      { value: '', name: '无胡须', path: '' },
+      { value: 'BeardFull', name: '络腮胡', path: '/common/human/beards/BeardFull_south.png' },
+      { value: 'BeardMoustache', name: '八字胡', path: '/common/human/beards/BeardMoustache_south.png' },
+      { value: 'BeardGoatee', name: '山羊胡', path: '/common/human/beards/BeardGoatee_south.png' },
+      { value: 'BeardBoxed', name: '方形胡', path: '/common/human/beards/BeardBoxed_south.png' },
+      { value: 'BeardCurly', name: '卷曲胡', path: '/common/human/beards/BeardCurly_south.png' },
+      { value: 'BeardStubble', name: '胡茬', path: '/common/human/beards/BeardStubble_south.png' }
+    ],
+    
+    // 控制选项列表显示
+    showGenderOptions: false,
+    showBodyTypeOptions: false,
+    showHairOptions: false,
+    showBeardOptions: false
+  },
+  
+  onInit() {
+    this.generateSkills()
+    // 设置默认值
+    this.selectedGender = 'male'
+    this.selectedBodyType = 'Naked_Male'
+    this.selectedHair = 'Shaved'
+    this.selectedBeard = ''
+    this.updateCharacterPaths()
+  },
+  
+  // 切换选项列表显示
+  toggleGenderOptions() {
+    this.showGenderOptions = !this.showGenderOptions
+    this.showBodyTypeOptions = false
+    this.showHairOptions = false
+    this.showBeardOptions = false
+  },
+  
+  toggleBodyTypeOptions() {
+    this.showBodyTypeOptions = !this.showBodyTypeOptions
+    this.showGenderOptions = false
+    this.showHairOptions = false
+    this.showBeardOptions = false
+  },
+  
+  toggleHairOptions() {
+    this.showHairOptions = !this.showHairOptions
+    this.showGenderOptions = false
+    this.showBodyTypeOptions = false
+    this.showBeardOptions = false
+  },
+  
+  toggleBeardOptions() {
+    this.showBeardOptions = !this.showBeardOptions
+    this.showGenderOptions = false
+    this.showBodyTypeOptions = false
+    this.showHairOptions = false
+  },
+  
+  // 选择具体选项
+  selectGenderOption(value) {
+    this.selectedGender = value
+    this.showGenderOptions = false
+    this.updateCharacterPaths()
+  },
+  
+  selectBodyTypeOption(value) {
+    this.selectedBodyType = value
+    this.showBodyTypeOptions = false
+    this.updateCharacterPaths()
+  },
+  
+  selectHairOption(value) {
+    this.selectedHair = value
+    this.showHairOptions = false
+    this.updateCharacterPaths()
+  },
+  
+  selectBeardOption(value) {
+    this.selectedBeard = value
+    this.showBeardOptions = false
+    this.updateCharacterPaths()
+  },
+  
+  // 获取显示名称的方法
+  getBodyTypeName(value) {
+    const option = this.bodyTypeOptions.find(opt => opt.value === value)
+    return option ? option.name : '未选择'
+  },
+  
+  getHairName(value) {
+    const option = this.hairOptions.find(opt => opt.value === value)
+    return option ? option.name : '未选择'
+  },
+  
+  getBeardName(value) {
+    const option = this.beardOptions.find(opt => opt.value === value)
+    return option ? option.name : '未选择'
+  },
+  
+  updateCharacterPaths() {
+    // 更新身体路径
+    if (this.selectedBodyType) {
+      this.characterPaths.body = `/common/human/bodies/${this.selectedBodyType}_south.png`
+    }
+    
+    // 更新头部路径
+    if (this.selectedGender === 'male') {
+      this.characterPaths.head = '/common/human/heads/Male/Male_Average_Normal_south.png'
+    } else if (this.selectedGender === 'female') {
+      this.characterPaths.head = '/common/human/heads/Female/Female_Average_Normal_south.png'
+    }
+    
+    // 更新头发路径
+    if (this.selectedHair && this.selectedHair !== 'Shaved') {
+      this.characterPaths.hair = `/common/human/haris/${this.selectedHair}_south.png`
+    } else {
+      this.characterPaths.hair = ''
+    }
+    
+    // 更新胡须路径
+    if (this.selectedBeard) {
+      this.characterPaths.beard = `/common/human/beards/${this.selectedBeard}_south.png`
+    } else {
+      this.characterPaths.beard = ''
+    }
+  },
+  
+  generateSkills() {
+    const skillNames = ['射击', '格斗', '建造', '种植', '烹饪', '医疗', '艺术', '制作', '智力', '动物']
+    this.skills = skillNames.map(name => ({
+      name: name,
+      level: Math.floor(Math.random() * 20) + 1
+    }))
+  },
+  
+  generateRandomName() {
+    this.selectedName = nameGenerator.generateRandomName()
+  },
+  
+  backToIndex() {
+    router.back()
+  },
+  
+  goToNarrator() {
+    // 验证必要的选择是否完成
+    if (!this.selectedGender) {
+      console.log('❌ 殖民者定制验证失败: 未选择性别')
+      // 这里可以添加用户提示
+      return
+    }
+    
+    if (!this.selectedBodyType) {
+      console.log('❌ 殖民者定制验证失败: 未选择体型')
+      // 这里可以添加用户提示
+      return
+    }
+    
+    if (!this.selectedHair) {
+      console.log('❌ 殖民者定制验证失败: 未选择发型')
+      // 这里可以添加用户提示
+      return
+    }
+    
+    // 验证技能是否已生成
+    if (!this.skills || this.skills.length === 0) {
+      console.log('❌ 殖民者定制验证失败: 技能未生成')
+      this.generateRandomSkills()
+    }
+    
+    // 如果没有生成名称，自动生成一个
+    if (!this.selectedName) {
+      console.log('⚠️ 自动生成殖民者名称')
+      this.generateRandomName()
+    }
+    
+    console.log('✅ 殖民者定制验证通过，准备跳转到讲述人页面')
+    
+    // 保存完整的殖民者数据
+    const colonistData = {
+      // 基础信息
+      name: this.selectedName,
+      gender: this.selectedGender,
+      bodyType: this.selectedBodyType,
+      hair: this.selectedHair,
+      beard: this.selectedBeard,
+      
+      // 技能数据
+      skills: this.skills.map(skill => ({
+        name: skill.name,
+        level: skill.level,
+        passion: Math.floor(Math.random() * 3) // 0=无热情, 1=小热情, 2=大热情
+      })),
+      
+      // 外观路径
+      characterPaths: {
+        body: this.characterPaths.body,
+        head: this.characterPaths.head,
+        hair: this.characterPaths.hair,
+        beard: this.characterPaths.beard
+      },
+      
+      // 游戏属性
+      age: Math.floor(Math.random() * 50) + 18, // 18-67岁
+      health: 100,
+      mood: 50,
+      hunger: 50,
+      rest: 50,
+      
+      // 背景故事
+      childhood: this.generateChildhood(),
+      adulthood: this.generateAdulthood(),
+      
+      // 特性
+      traits: this.generateTraits(),
+      
+      // 创建时间
+      createdAt: Date.now()
+    }
+    
+    router.push({
+      uri: '/pages/narrator',
+      params: {
+        colonistData: colonistData
+      }
+    })
+  },
+  
+  // 生成童年背景
+  generateChildhood() {
+    const childhoods = [
+      { name: '农场孩子', desc: '在农场长大，学会了种植和动物护理' },
+      { name: '城市孩子', desc: '在城市中长大，接受了良好的教育' },
+      { name: '野孩子', desc: '在野外长大，学会了生存技能' },
+      { name: '贵族孩子', desc: '在贵族家庭长大，接受了精英教育' },
+      { name: '孤儿', desc: '从小失去父母，学会了自立' }
+    ]
+    return childhoods[Math.floor(Math.random() * childhoods.length)]
+  },
+  
+  // 生成成年背景
+  generateAdulthood() {
+    const adulthoods = [
+      { name: '士兵', desc: '接受过军事训练，擅长战斗' },
+      { name: '医生', desc: '医学专家，擅长治疗' },
+      { name: '工程师', desc: '技术专家，擅长建造和制作' },
+      { name: '商人', desc: '善于交易和社交' },
+      { name: '艺术家', desc: '富有创造力，擅长艺术创作' },
+      { name: '农民', desc: '擅长种植和动物护理' }
+    ]
+    return adulthoods[Math.floor(Math.random() * adulthoods.length)]
+  },
+  
+  // 生成特性
+  generateTraits() {
+    const allTraits = [
+      { name: '勤奋', desc: '工作速度更快', effect: 'work_speed_bonus' },
+      { name: '懒惰', desc: '工作速度较慢', effect: 'work_speed_penalty' },
+      { name: '乐观', desc: '心情更好', effect: 'mood_bonus' },
+      { name: '悲观', desc: '心情较差', effect: 'mood_penalty' },
+      { name: '夜猫子', desc: '夜间工作效率更高', effect: 'night_bonus' },
+      { name: '早起鸟', desc: '早晨工作效率更高', effect: 'morning_bonus' },
+      { name: '美食家', desc: '对食物要求较高', effect: 'food_requirement' },
+      { name: '节俭', desc: '对生活条件要求较低', effect: 'low_expectations' }
+    ]
+    
+    // 随机选择1-3个特性
+    const traitCount = Math.floor(Math.random() * 3) + 1
+    const selectedTraits = []
+    const usedIndices = new Set()
+    
+    for (let i = 0; i < traitCount; i++) {
+      let index
+      do {
+        index = Math.floor(Math.random() * allTraits.length)
+      } while (usedIndices.has(index))
+      
+      usedIndices.add(index)
+      selectedTraits.push(allTraits[index])
+    }
+    
+    return selectedTraits
+  }
+}
+</script>
+
+<style>
+.colonist-page {
+  flex-direction: column;
+  background-image: url('/common/MindbendCarpet_a_512.png');
+  background-size: cover;
+  width: 100%;
+  min-height: 100%;
+  padding: 10px;
+}
+
+.page-title {
+  font-size: 20px;
+  color: #ffffff;
+  text-align: center;
+  margin-bottom: 15px;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+}
+
+.customization-list {
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 10px;
+  padding-bottom: 80px;
+}
+
+.customization-card {
+  width: 320px;
+  margin-bottom: 12px;
+  padding: 15px;
+  background-color: rgba(0,0,0,0.7);
+  border-radius: 8px;
+  border: 2px solid #8B4513;
+  flex-direction: column;
+  align-items: center;
+}
+
+.customization-card.selected {
+  border-color: #228B22;
+  background-color: rgba(34, 139, 34, 0.3);
+}
+
+.card-header {
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-size: 18px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.card-value {
+  font-size: 16px;
+  color: #FFD700;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+}
+
+.character-preview {
+  position: relative;
+  width: 150px;
+  height: 150px;
+  margin-bottom: 10px;
+}
+
+.character-image {
+  position: absolute;
+  width: 150px;
+  height: 150px;
+  top: 0;
+  left: 0;
+}
+
+.part-preview {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.part-image {
+  width: 120px;
+  height: 120px;
+}
+
+.no-hair-text,
+.no-beard-text {
+  font-size: 14px;
+  color: #cccccc;
+  text-align: center;
+}
+
+.skills-preview {
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+}
+
+.skill-item {
+  width: 100%;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background-color: rgba(139, 69, 19, 0.3);
+  border-radius: 4px;
+}
+
+.skill-name {
+  font-size: 14px;
+  color: #ffffff;
+  flex: 1;
+}
+
+.skill-progress {
+  flex: 2;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.skill-bar {
+  width: 80px;
+  height: 8px;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
+  margin-right: 8px;
+  position: relative;
+}
+
+.skill-fill {
+  height: 100%;
+  background-color: #228B22;
+  border-radius: 4px;
+  min-width: 2px;
+}
+
+.skill-level {
+  font-size: 13px;
+  color: #228B22;
+  font-weight: bold;
+  width: 20px;
+  text-align: right;
+}
+
+/* 导航按钮样式 */
+.navigation {
+  flex-direction: row;
+  justify-content: center;
+  margin-top: 15px;
+  margin-bottom: 10px;
+}
+
+.nav-btn {
+  width: 100px;
+  height: 40px;
+  margin: 0 10px;
+  border-radius: 6px;
+  background-color: rgba(139, 69, 19, 0.8);
+  font-size: 14px;
+  color: #ffffff;
+  border: 2px solid #8B4513;
+  text-align: center;
+}
+
+.nav-btn.primary {
+  background-color: rgba(34, 139, 34, 0.8);
+  border-color: #228B22;
+}
+
+/* 选项列表样式 */
+.options-list {
+  width: 100%;
+  flex-direction: column;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid rgba(139, 69, 19, 0.5);
+}
+
+.option-item {
+  width: 100%;
+  padding: 8px 12px;
+  margin-bottom: 4px;
+  background-color: rgba(139, 69, 19, 0.3);
+  border-radius: 4px;
+  border: 1px solid rgba(139, 69, 19, 0.5);
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+}
+
+.option-item.selected {
+  background-color: rgba(34, 139, 34, 0.5);
+  border-color: #228B22;
+}
+
+.option-name {
+  font-size: 15px;
+  color: #ffffff;
+  text-align: center;
+}
+
+/* 名称生成器样式 */
+.name-generator {
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  margin-top: 10px;
+}
+
+.name-display {
+  font-size: 18px;
+  color: #FFD700;
+  font-weight: bold;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  margin-bottom: 8px;
+  text-align: center;
+  min-height: 22px;
+}
+
+.name-buttons {
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
+}
+
+.generate-btn {
+  width: 40px;
+  height: 24px;
+  margin: 0 3px;
+  border-radius: 3px;
+  background-color: rgba(34, 139, 34, 0.6);
+  font-size: 9px;
+  color: #ffffff;
+  border: 1px solid #228B22;
+  text-align: center;
+  padding: 0;
+  line-height: 22px;
+}
+
+.generate-btn.secondary {
+  background-color: rgba(139, 69, 19, 0.6);
+  border-color: #8B4513;
+}
+
+.validation-hint {
+  font-size: 12px;
+  color: #FFD700;
+  text-align: center;
+  margin-top: 10px;
+  padding: 5px;
+  background-color: rgba(255, 215, 0, 0.1);
+  border-radius: 4px;
+  border: 1px solid #FFD700;
+}
+</style>

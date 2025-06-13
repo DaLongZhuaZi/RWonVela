@@ -1,0 +1,225 @@
+<template>
+  <div class="main-page">
+    <!-- 游戏logo -->
+    <image class="game-logo" src="/common/GameTitle.png"></image>
+    
+    <!-- 主内容区域 -->
+    <div class="main-content">
+      <!-- 人物模型展示区域 -->
+       <div class="character-showcase">
+         <div class="character-item">
+           <div class="character-model-mini">
+             <image class="character-part-mini body-part-mini" src="{{ currentCharacter.paths.body }}"></image>
+             <image class="character-part-mini head-part-mini" src="{{ currentCharacter.paths.head }}"></image>
+             <image class="character-part-mini beard-part-mini" src="{{ currentCharacter.paths.beard }}" show="{{ currentCharacter.paths.beard }}"></image>
+             <image class="character-part-mini hair-part-mini" src="{{ currentCharacter.paths.hair }}"></image>
+           </div>
+           <text class="character-name">{{ currentCharacter.name }}</text>
+         </div>
+       </div>
+      
+      <!-- 主菜单按钮 -->
+      <div class="menu-buttons">
+        <input class="menu-btn" type="button" value="进入殖民地" onclick="enterColony" />
+        <input class="menu-btn" type="button" value="开始新旅程" onclick="startNewJourney" />
+        <input class="menu-btn" type="button" value="存档测试" onclick="goToSaveTest" />
+        <input class="menu-btn" type="button" value="回到现实" onclick="backToReality" />
+      </div>
+    </div>
+  </div>
+</template>
+
+<script>
+import router from "@system.router"
+import configuration from "@system.configuration"
+import humanDisplay from "../../common/humanDisplay.js"
+
+export default {
+  // 页面级组件的数据模型
+  private: {
+    title: "RimWorld",
+    currentCharacter: {
+      config: null,
+      paths: {
+        body: '',
+        head: '',
+        hair: '',
+        beard: ''
+      },
+      name: ''
+    },
+    characterNames: [
+      '艾莉丝', '鲍勃', '查理', '黛安娜', '埃德华', '菲奥娜',
+      '乔治', '海伦', '伊万', '茱莉亚', '凯文', '露西',
+      '马克', '娜塔莎', '奥利弗', '佩妮', '昆汀', '瑞秋'
+    ]
+  },
+  
+  onInit() {
+    this.generateNewCharacter()
+    this.startCharacterRotation()
+  },
+
+  enterColony() {
+    // 进入殖民地管理页面
+    router.push({
+      uri: "/pages/colony"
+    })
+  },
+
+  startNewJourney() {
+    // 开始新旅程，跳转到殖民者定制页面
+    router.push({
+      uri: "/pages/colonist"
+    })
+  },
+
+  backToReality() {
+    // 退出游戏或返回上级页面
+    router.back()
+  },
+  
+  generateNewCharacter() {
+    // 生成新的随机人物
+    const character = humanDisplay.generateRandomHumanConfig()
+    // const direction = ['east', 'south', 'north'][Math.floor(Math.random() * 3)]
+    const direction = 'south'
+    const paths = humanDisplay.getHumanPartsPaths(character, direction)
+    const name = this.characterNames[Math.floor(Math.random() * this.characterNames.length)]
+    
+    this.currentCharacter = {
+      config: character,
+      paths: paths,
+      name: name
+    }
+  },
+  
+  startCharacterRotation() {
+    // 每5秒切换到新的人物
+    setInterval(() => {
+      this.generateNewCharacter()
+    }, 5000)
+  },
+  
+  // 跳转到存档测试页面
+  goToSaveTest() {
+    router.push({
+      uri: '/pages/test'
+    })
+  }
+}
+</script>
+
+<style>
+.main-page {
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background-image: url('/common/MindbendCarpet_a_512.png');
+  background-size: cover;
+  background-position: center;
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+}
+
+.main-content {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 350px;
+}
+
+.game-logo {
+  width: 360px;
+  height: 120px;
+  margin-bottom: 20px;
+  object-fit: contain;
+}
+
+/* 人物展示区域样式 */
+.character-showcase {
+  width: 120px;
+  height: 200px;
+  margin-right: 20px;
+}
+
+.character-item {
+  flex-direction: column;
+  align-items: center;
+  padding: 4px;
+  background-color: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(139, 69, 19, 0.5);
+  height: 100%;
+  justify-content: space-between;
+}
+
+.character-model-mini {
+  position: relative;
+  width: 90%;
+  height: 100%;
+  flex: 1;
+  align-self: center;
+}
+
+.character-part-mini {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  left: 0;
+  top: 0;
+}
+
+.body-part-mini {
+  z-index: 0;
+  top: 8px;
+}
+
+.head-part-mini {
+  z-index: 0;
+  top: -25px;
+}
+
+.beard-part-mini {
+  z-index: 2;
+  top: -22px;
+}
+
+.hair-part-mini {
+  z-index: 2;
+  top: -30px;
+}
+
+.character-name {
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+  margin-top: 5px;
+  width: 100%;
+}
+
+.menu-buttons {
+  flex-direction: column;
+  align-items: center;
+  width: 180px;
+}
+
+.menu-btn {
+  width: 180px;
+  height: 45px;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  background-color: rgba(139, 69, 19, 0.8);
+  font-size: 16px;
+  color: #ffffff;
+  border: 2px solid #8B4513;
+  text-align: center;
+}
+
+.menu-btn {
+  background-color: rgba(160, 82, 45, 0.9);
+}
+</style>

@@ -1,0 +1,49 @@
+{
+  "package": "com.application.watch.demo",
+  "name": "rimWorld",
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "minPlatformVersion": 1000,
+  "icon": "/common/RimWorldLogo.png",
+  "deviceTypeList": [
+    "watch"
+  ],
+  "features": [
+    {
+      "name": "system.router"
+    },
+    {
+      "name": "system.storage"
+    }
+  ],
+  "config": {
+    "logLevel": "log",
+    "designWidth": 480
+  },
+  "router": {
+    "entry": "pages/index",
+    "pages": {
+      "pages/index": {
+        "component": "index"
+      },
+      "pages/detail": {
+        "component": "detail"
+      },
+      "pages/colony": {
+        "component": "colony"
+      },
+      "pages/game": {
+        "component": "game"
+      },
+      "pages/colonist": {
+        "component": "colonist"
+      },
+      "pages/narrator": {
+        "component": "narrator"
+      },
+      "pages/test": {
+        "component": "saveTest"
+      }
+    }
+  }
+}
