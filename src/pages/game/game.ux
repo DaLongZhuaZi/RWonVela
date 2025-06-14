@@ -39,16 +39,17 @@
     <!-- 主游戏区域 - 左右布局 -->
     <div class="main-game-area">
       <!-- 地图显示区域 - 使用独立的map组件 -->
-      <div class="map-display-container" style="{{ responsiveStyles.mapContainer }}">
-      <!-- 调试信息：地图显示容器 -->
-      <text class="debug-info" show="{{ showDebugInfo }}">当前是地图显示容器(map-display-container)</text>
+      <div class="map-display-container" style="{{ responsiveStyles.mapContainer }}">  
       
       <!-- 地图组件内容 -->
       <div class="map-component" style="{{ responsiveStyles.mapComponent }}">
+        
         <!-- 地形网格 -->
-        <div class="terrain-grid" show="{{ terrainGrid && terrainGrid.length > 0 }}">
-          <div class="terrain-row" for="(rowIndex, row) in terrainGrid">
-            <div class="tile-container" for="(colIndex, tile) in row">
+        <div class="terrain-grid">
+          <div class="terrain-row" for="(rowIndex, row) in terrainGrid" >
+            
+            <div class="tile-container" for="(colIndex, tile) in row" >
+              
               <!-- 地形背景 -->
                <image class="terrain-image" 
                       src="{{ getTerrainPath(tile.biome) }}" 
@@ -2236,10 +2237,12 @@ export default {
 
 .status-bar {
   flex-direction: row;
-  justify-content: space-around;
+  justify-content: space-between;
+  align-items: center;
   background-color: rgba(0,0,0,0.9);
   border-bottom: 2px solid #8B4513;
   border-radius: 0 0 25px 25px;
+  padding: 0 15px;
 }
 
 .status-item {
@@ -2247,62 +2250,63 @@ export default {
   align-items: center;
   justify-content: center;
   flex: 1;
-  padding: 5px;
+  padding: 8px 5px;
 }
 
 .status-left {
-  margin-top: 5px;
+  align-items: flex-start;
 }
 
 .status-center {
-  margin-top: -5px;
+  align-items: center;
 }
 
 .status-right {
-  margin-top: 5px;
+  align-items: flex-end;
 }
 
 .status-label {
-  font-size: 12px;
+  font-size: 14px;
   color: #cccccc;
   text-align: center;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
 }
 
 .status-value {
-  font-size: 14px;
+  font-size: 16px;
   color: #ffffff;
   font-weight: bold;
   text-align: center;
 }
 
-/* 资源状态栏 */
 .resource-bar {
   flex-direction: row;
-  justify-content: space-around;
+  justify-content: space-evenly;
+  align-items: center;
   background-color: rgba(139, 69, 19, 0.8);
   border-bottom: 1px solid #8B4513;
   border-radius: 12px;
+  padding: 8px 10px;
 }
 
 .resource-item {
   flex-direction: row;
   align-items: center;
+  justify-content: center;
+  flex: 1;
 }
 
 .resource-label {
-  font-size: 11px;
+  font-size: 13px;
   color: #ffffff;
-  margin-right: 4px;
+  margin-right: 2px;
 }
 
 .resource-value {
-  font-size: 13px;
+  font-size: 15px;
   color: #FFD700;
   font-weight: bold;
 }
-
-/* 主游戏区域 - 左右布局 */
 .main-game-area {
   flex: 1;
   flex-direction: row;
@@ -2315,20 +2319,16 @@ export default {
   padding: 5px;
 }
 
-/* 地图显示容器 - 响应式尺寸，支持缩放 */
 .map-display-container {
-  flex: 3;
   flex-direction: column;
-  align-items: stretch;
-  justify-content: stretch;
+  align-items: center;
+  justify-content: center;
   background-color: transparent;
   overflow: hidden;
   position: relative;
   margin-right: 5px;
-  height: 100%;
+  flex-shrink: 0;
 }
-
-/* 游戏菜单 */
 .game-menu {
   flex: 1;
   flex-direction: column;
@@ -2337,7 +2337,7 @@ export default {
   background-color: rgba(0, 0, 0, 0.8);
   border-radius: 12px;
   padding: 5px;
-  height: 100%;
+  min-width: 0; /* 允许收缩 */
 }
 
 .menu-item {
@@ -2352,7 +2352,6 @@ export default {
   padding: 8px;
 }
 
-
 .menu-icon {
   width: 24px;
   height: 24px;
@@ -2360,56 +2359,49 @@ export default {
 }
 
 .menu-text {
-  font-size: 12px;
+  font-size: 23px;
   color: #ffffff;
   text-align: center;
   font-weight: bold;
 }
 
-/* 地图组件样式 - 可缩放的容器 */
 .map-component {
   width: 100%;
   height: 100%;
   transform-origin: center center;
   position: relative;
 }
-
-
-
-/* 地形网格 - CSS Grid自适应布局 */
 .terrain-grid {
   position: absolute;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  display: grid;
-  grid-template-rows: repeat(10, 1fr);
-  gap: 1px;
+  display: flex;
+  flex-direction: column;
   background-color: transparent;
   padding: 2px;
   margin: 0;
 }
 
 .terrain-row {
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 1px;
+  display: flex;
+  flex-direction: row;
+  flex: 1;
   width: 100%;
-  height: 100%;
   margin: 0;
   padding: 0;
 }
 
 .tile-container {
   position: relative;
-  width: 100%;
+  flex: 1;
+  width: 10%;
   height: 100%;
   margin: 0;
   padding: 0;
   border: none;
   background-color: transparent;
-  aspect-ratio: 1;
 }
 
 .terrain-image {
@@ -2420,7 +2412,7 @@ export default {
   bottom: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
 }
 
 .player-character {
@@ -2434,6 +2426,7 @@ export default {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  z-index: 9;
 }
 
 .character-symbol {
@@ -2449,90 +2442,6 @@ export default {
 }
 
 
-.terrain-info-text {
-  color: #ffffff;
-  font-size: 12px;
-  position: absolute;
-  top: 5px;
-  left: 5px;
-}
-
-.player-character-display {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 96px;
-  height: 96px;
-  margin-left: -48px;
-  margin-top: -48px;
-}
-
-
-.player-name-text {
-  color: #ffffff;
-  font-size: 10px;
-  position: absolute;
-  top: 98px;
-  left: 0;
-  width: 96px;
-  text-align: center;
-}
-
-
-
-/* 游戏主界面样式 */
-.game-terrain-grid {
-  position: absolute;
-  top: 150px;
-  left: 100px;
-  width: 200px;
-  height: 200px;
-}
-
-.terrain-tile {
-  position: absolute;
-  overflow: hidden;
-}
-
-.player-character {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  left: 50%;
-  top: 50%;
-  margin-left: -16px;
-  margin-top: -16px;
-}
-
-.player-body,
-.player-head,
-.player-hair,
-.player-beard {
-  position: absolute;
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-.player-body {
-  z-index: 1;
-}
-
-.player-head {
-  z-index: 2;
-}
-
-.player-hair {
-  z-index: 3;
-}
-
-.player-beard {
-  z-index: 4;
-}
-
-
-
-/* 底部导航 */
 .bottom-nav {
   position: absolute;
   bottom: 0;
@@ -2575,20 +2484,4 @@ export default {
   border-color: #4169E1;
   color: #ffffff;
 }
-
-/* 调试信息样式 */
-.debug-info {
-  position: absolute;
-  top: 0;
-  left: 0;
-  color: #FF0000;
-  font-size: 10px;
-  font-weight: bold;
-  background-color: rgba(255, 255, 255, 0.8);
-  padding: 2px 4px;
-  border-radius: 3px;
-  z-index: 1000;
-  pointer-events: none;
-}
-
 </style>

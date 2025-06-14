@@ -21,7 +21,7 @@ class ResponsiveManager {
     this.scale = 1
     
     // 安全区域计算 (弧形屏幕适配)
-    this.safeAreaRatio = 0.85 // 安全区域占屏幕对角线正方形的85%
+    this.safeAreaRatio = 0.95 // 安全区域占屏幕对角线正方形的95%，增加可用空间
     
     // 组件尺寸配置
     this.componentSizes = {
@@ -31,7 +31,7 @@ class ResponsiveManager {
       locationInfo: { height: 120 },
       mapContainer: { 
         minHeight: 200,
-        maxHeight: 400,
+        maxHeight: 800, // 提高最大高度限制，允许占满更多空间
         padding: 4
       }
     }
@@ -49,11 +49,7 @@ class ResponsiveManager {
       this.calculateScale()
       this.calculateSafeArea()
       
-      console.log('📱 响应式管理器初始化完成:', {
-        设备尺寸: `${this.deviceWidth}x${this.deviceHeight}`,
-        缩放比例: `${this.scale.toFixed(3)}`,
-        安全区域: `${this.safeArea.width}x${this.safeArea.height}`
-      })
+
     } catch (error) {
       console.error('❌ 响应式管理器初始化失败:', error)
       // 使用默认值
@@ -109,10 +105,10 @@ class ResponsiveManager {
     const safeSize = diagonal * this.safeAreaRatio / Math.sqrt(2)
     
     this.safeArea = {
-      width: Math.min(safeSize, this.deviceWidth * 0.95),
-      height: Math.min(safeSize, this.deviceHeight * 0.95),
-      offsetX: (this.deviceWidth - Math.min(safeSize, this.deviceWidth * 0.95)) / 2,
-      offsetY: (this.deviceHeight - Math.min(safeSize, this.deviceHeight * 0.95)) / 2
+      width: Math.min(safeSize, this.deviceWidth * 0.98),
+      height: Math.min(safeSize, this.deviceHeight * 0.98),
+      offsetX: (this.deviceWidth - Math.min(safeSize, this.deviceWidth * 0.98)) / 2,
+      offsetY: (this.deviceHeight - Math.min(safeSize, this.deviceHeight * 0.98)) / 2
     }
   }
   
@@ -149,20 +145,20 @@ class ResponsiveManager {
     const locationInfoReservedHeight = this.getResponsiveSize(this.componentSizes.locationInfo.height)
     
     // 计算可用高度（减去所有固定组件的高度）
-    const totalFixedHeight = statusBarHeight + resourceBarHeight + bottomNavHeight + locationInfoReservedHeight
-    const availableHeight = this.safeArea.height - totalFixedHeight
+    const totalFixedHeight = statusBarHeight + resourceBarHeight + bottomNavHeight
+    const availableHeight = this.safeArea.height - totalFixedHeight - this.getResponsiveSize(5) // 减少边距，释放更多空间
     
-    // 地图容器高度（确保不超出可用空间）
+    // 地图容器高度优先占满可用高度
     const mapHeight = Math.max(
       this.getResponsiveSize(this.componentSizes.mapContainer.minHeight),
       Math.min(
         this.getResponsiveSize(this.componentSizes.mapContainer.maxHeight),
-        availableHeight - this.getResponsiveSize(20) // 额外的边距
+        availableHeight
       )
     )
     
-    // 地图容器宽度（保持在安全区域内）
-    const mapWidth = this.safeArea.width - this.getResponsiveSize(10) // 左右边距
+    // 地图容器宽度等于高度，保持1:1比例
+    const mapWidth = mapHeight
     
     // 计算地图内容的缩放比例（地图网格基准尺寸250x250）
     const contentScale = Math.min(
@@ -170,12 +166,16 @@ class ResponsiveManager {
       (mapHeight - this.getResponsiveSize(40)) / 250  // 减去状态指示器和信息面板的空间
     )
     
-    return {
+    const result = {
       width: mapWidth,
       height: mapHeight,
       scale: Math.max(0.5, Math.min(1.2, contentScale)), // 限制缩放范围
       padding: this.getResponsiveSize(this.componentSizes.mapContainer.padding)
     }
+    
+
+    
+    return result
   }
   
   /**
