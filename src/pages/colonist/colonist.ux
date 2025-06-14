@@ -161,15 +161,15 @@ export default {
     ],
     hairOptions: [
       { value: 'Shaved', name: '光头', path: '' },
-      { value: 'Afro', name: '爆炸头', path: '/common/human/haris/Afro_south.png' },
-      { value: 'Bob', name: '波波头', path: '/common/human/haris/Bob_south.png' },
-      { value: 'Mohawk', name: '莫西干头', path: '/common/human/haris/Mohawk_south.png' },
-      { value: 'Long', name: '长发', path: '/common/human/haris/Long_south.png' },
-      { value: 'Ponytails', name: '马尾辫', path: '/common/human/haris/Ponytails_south.png' },
-      { value: 'Curly', name: '卷发', path: '/common/human/haris/Curly_south.png' },
-      { value: 'Decent', name: '整齐', path: '/common/human/haris/Decent_south.png' },
-      { value: 'Flowy', name: '飘逸', path: '/common/human/haris/Flowy_south.png' },
-      { value: 'Mess', name: '凌乱', path: '/common/human/haris/Mess_south.png' }
+      { value: 'Afro', name: '爆炸头', path: '/common/human/hairs/Afro_south.png' },
+      { value: 'Bob', name: '波波头', path: '/common/human/hairs/Bob_south.png' },
+      { value: 'Mohawk', name: '莫西干头', path: '/common/human/hairs/Mohawk_south.png' },
+      { value: 'Long', name: '长发', path: '/common/human/hairs/Long_south.png' },
+      { value: 'Ponytails', name: '马尾辫', path: '/common/human/hairs/Ponytails_south.png' },
+      { value: 'Curly', name: '卷发', path: '/common/human/hairs/Curly_south.png' },
+      { value: 'Decent', name: '整齐', path: '/common/human/hairs/Decent_south.png' },
+      { value: 'Flowy', name: '飘逸', path: '/common/human/hairs/Flowy_south.png' },
+      { value: 'Mess', name: '凌乱', path: '/common/human/hairs/Mess_south.png' }
     ],
     beardOptions: [
       { value: '', name: '无胡须', path: '' },
@@ -283,7 +283,7 @@ export default {
     
     // 更新头发路径
     if (this.selectedHair && this.selectedHair !== 'Shaved') {
-      this.characterPaths.hair = `/common/human/haris/${this.selectedHair}_south.png`
+      this.characterPaths.hair = `/common/human/hairs/${this.selectedHair}_south.png`
     } else {
       this.characterPaths.hair = ''
     }

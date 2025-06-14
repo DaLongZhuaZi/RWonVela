@@ -21,13 +21,7 @@
             <!-- 地形物体 -->
             <image class="terrain-tile-object" show="{{ tile.object && tile.object !== '' }}" src="{{ getObjectPath(tile.object) }}" onerror="handleImageError"></image>
           
-          <!-- 玩家角色显示（仅在玩家位置显示） -->
-          <div class="player-character" show="{{ playerPosition.x === colIndex && playerPosition.y === rowIndex }}">
-            <image class="player-body" src="{{ characterPaths.body }}" onerror="handleImageError"></image>
-            <image class="player-head" show="{{ characterPaths.head && characterPaths.head !== '' }}" src="{{ characterPaths.head }}" onerror="handleImageError"></image>
-            <image class="player-hair" show="{{ characterPaths.hair && characterPaths.hair !== '' }}" src="{{ characterPaths.hair }}" onerror="handleImageError"></image>
-            <image class="player-beard" show="{{ characterPaths.beard && characterPaths.beard !== '' }}" src="{{ characterPaths.beard }}" onerror="handleImageError"></image>
-          </div>
+
         </div>
       </div>
     </div>
@@ -51,14 +45,7 @@ export default {
     return {
       terrainGrid: [],
       playerPosition: { x: 2, y: 2 },
-      characterPaths: {
-        body: 'common/human/bodies/Naked_Male_south.png',
-        head: 'common/human/heads/Male/Male_Average_Normal_south.png',
-        hair: 'common/human/hairs/Decent_south.png',
-        beard: 'common/human/beards/BeardMoustache_south.png'
-      },
-      colonistData: null,
-      currentCharacter: null,
+
       autoMoveEnabled: false
     }
   },
@@ -120,10 +107,7 @@ export default {
         return false
       }
       
-      // 检测7: 角色路径验证
-      if (!this.characterPaths || !this.characterPaths.body) {
-        return false
-      }
+
       
       return true
     },
@@ -179,9 +163,7 @@ export default {
       }
       
       // 检查角色路径
-      if (!this.characterPaths || !this.characterPaths.body) {
-        return '由于角色图片路径缺失导致地图无法显示'
-      }
+
       
       return '由于未知错误导致地图无法显示'
     },
@@ -194,7 +176,7 @@ export default {
         是否数组: Array.isArray(this.terrainGrid),
         数组长度: this.terrainGrid ? this.terrainGrid.length : 0,
         玩家位置: this.playerPosition,
-        角色路径: !!this.characterPaths
+
       }
       return JSON.stringify(details)
     },
@@ -212,17 +194,7 @@ export default {
             this.playerPosition = this.$parent.playerPosition
           }
           
-          if (this.$parent.characterPaths) {
-            this.characterPaths = this.$parent.characterPaths
-          }
-          
-          if (this.$parent.colonistData) {
-            this.colonistData = this.$parent.colonistData
-          }
-          
-          if (this.$parent.currentCharacter) {
-            this.currentCharacter = this.$parent.currentCharacter
-          }
+
           
           if (this.$parent.currentTileInfo) {
             this.currentTileInfo = this.$parent.currentTileInfo
@@ -478,45 +450,7 @@ export default {
   z-index: 9;
 }
 
-.player-body {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 10;
-}
 
-.player-head {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 11;
-}
-
-.player-hair {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 12;
-}
-
-.player-beard {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-  z-index: 13;
-}
 
 /* 底部导航样式 */
 .bottom-nav {

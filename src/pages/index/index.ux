@@ -6,17 +6,28 @@
     <!-- 主内容区域 -->
     <div class="main-content">
       <!-- 人物模型展示区域 -->
-       <div class="character-showcase">
-         <div class="character-item">
-           <div class="character-model-mini">
-             <image class="character-part-mini body-part-mini" src="{{ currentCharacter.paths.body }}"></image>
-             <image class="character-part-mini head-part-mini" src="{{ currentCharacter.paths.head }}"></image>
-             <image class="character-part-mini beard-part-mini" src="{{ currentCharacter.paths.beard }}" show="{{ currentCharacter.paths.beard }}"></image>
-             <image class="character-part-mini hair-part-mini" src="{{ currentCharacter.paths.hair }}"></image>
-           </div>
-           <text class="character-name">{{ currentCharacter.name }}</text>
-         </div>
-       </div>
+      <div class="character-showcase">
+        <div class="character-item" if="{{showCharacter}}" onclick="regenerateCharacter">
+          <!-- 人物模型 -->
+          <div class="character-model-mini">
+            <!-- 身体 -->
+            <image class="character-part-mini body-part-mini" src="{{characterPaths.body}}" if="{{characterPaths.body}}"></image>
+            <!-- 头部 -->
+            <image class="character-part-mini head-part-mini" src="{{characterPaths.head}}" if="{{characterPaths.head}}"></image>
+            <!-- 胡须 -->
+            <image class="character-part-mini beard-part-mini" src="{{characterPaths.beard}}" if="{{characterPaths.beard}}"></image>
+            <!-- 头发 -->
+            <image class="character-part-mini hair-part-mini" src="{{characterPaths.hair}}" if="{{characterPaths.hair}}"></image>
+          </div>
+          <!-- 人物名字 -->
+          <text class="character-name">{{characterName}}</text>
+        </div>
+        
+        <!-- 加载提示 -->
+        <div class="character-loading" if="{{!showCharacter}}">
+          <text class="loading-text">生成人物中...</text>
+        </div>
+      </div>
       
       <!-- 主菜单按钮 -->
       <div class="menu-buttons">
@@ -32,35 +43,30 @@
 <script>
 import router from "@system.router"
 import configuration from "@system.configuration"
-import humanDisplay from "../../common/humanDisplay.js"
 import saveManager from "../../common/saveManager.js"
+import humanDisplay from "../../common/humanDisplay.js"
+import nameGenerator from "../../common/nameGenerator.js"
 
 export default {
   // 页面级组件的数据模型
   private: {
     title: "RimWorld",
     enterColonyButtonText: "进入殖民地",
-    currentCharacter: {
-      config: null,
-      paths: {
-        body: '',
-        head: '',
-        hair: '',
-        beard: ''
-      },
-      name: ''
+    // 人物模型相关数据
+    characterModel: null,
+    characterName: '',
+    characterPaths: {
+      body: '',
+      head: '',
+      hair: '',
+      beard: ''
     },
-    characterNames: [
-      '艾莉丝', '鲍勃', '查理', '黛安娜', '埃德华', '菲奥娜',
-      '乔治', '海伦', '伊万', '茱莉亚', '凯文', '露西',
-      '马克', '娜塔莎', '奥利弗', '佩妮', '昆汀', '瑞秋'
-    ]
+    showCharacter: false
   },
   
-  onInit() {
-    this.generateNewCharacter()
-    this.startCharacterRotation()
+  async onInit() {
     this.updateEnterColonyButton()
+    await this.initializeCharacterDisplay()
   },
 
   // 更新进入殖民地按钮文案
@@ -78,6 +84,80 @@ export default {
       console.error('获取存档列表失败:', error)
       this.enterColonyButtonText = "进入殖民地"
     })
+  },
+
+  // 初始化人物模型显示
+  async initializeCharacterDisplay() {
+    try {
+      console.log('🎭 开始初始化人物模型显示...')
+      
+      // 初始化人物显示系统
+      await humanDisplay.initializeHumanDisplay()
+      
+      // 生成随机人物模型
+      this.generateRandomCharacter()
+      
+      console.log('🎭 人物模型显示初始化完成')
+    } catch (error) {
+      console.error('❌ 人物模型显示初始化失败:', error)
+    }
+  },
+
+  // 生成随机人物
+  generateRandomCharacter() {
+    try {
+      // 随机选择性别
+      const genders = ['male', 'female']
+      const randomGender = genders[Math.floor(Math.random() * genders.length)]
+      
+      // 生成随机人物配置
+      this.characterModel = humanDisplay.generateRandomHumanConfig(randomGender)
+      
+      // 生成随机名字
+      this.characterName = nameGenerator.generateRandomName()
+      
+      // 更新人物路径
+      this.updateCharacterPaths()
+      
+      // 显示人物
+      this.showCharacter = true
+      
+      console.log('🎭 生成随机人物:', {
+        name: this.characterName,
+        gender: randomGender,
+        model: this.characterModel
+      })
+    } catch (error) {
+      console.error('❌ 生成随机人物失败:', error)
+    }
+  },
+
+  // 更新人物模型路径
+  updateCharacterPaths() {
+    if (!this.characterModel) return
+    
+    try {
+      // 使用south方向作为默认显示方向
+      const direction = 'south'
+      const paths = humanDisplay.getHumanPartsPaths(this.characterModel, direction)
+      
+      this.characterPaths = {
+        body: paths.body || '',
+        head: paths.head || '',
+        hair: paths.hair || '',
+        beard: paths.beard || ''
+      }
+      
+      console.log('🎭 更新人物路径:', this.characterPaths)
+    } catch (error) {
+      console.error('❌ 更新人物路径失败:', error)
+    }
+  },
+
+  // 重新生成人物（点击人物模型时触发）
+  regenerateCharacter() {
+    console.log('🎭 重新生成人物...')
+    this.generateRandomCharacter()
   },
 
   enterColony() {
@@ -132,27 +212,7 @@ export default {
     router.back()
   },
   
-  generateNewCharacter() {
-    // 生成新的随机人物
-    const character = humanDisplay.generateRandomHumanConfig()
-    // const direction = ['east', 'south', 'north'][Math.floor(Math.random() * 3)]
-    const direction = 'south'
-    const paths = humanDisplay.getHumanPartsPaths(character, direction)
-    const name = this.characterNames[Math.floor(Math.random() * this.characterNames.length)]
-    
-    this.currentCharacter = {
-      config: character,
-      paths: paths,
-      name: name
-    }
-  },
-  
-  startCharacterRotation() {
-    // 每5秒切换到新的人物
-    setInterval(() => {
-      this.generateNewCharacter()
-    }, 5000)
-  },
+
   
   // 跳转到存档测试页面
   goToSaveTest() {
@@ -252,6 +312,25 @@ export default {
   text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
   margin-top: 5px;
   width: 100%;
+}
+
+.character-loading {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 120px;
+  height: 200px;
+  margin-right: 20px;
+  background-color: rgba(0,0,0,0.3);
+  border-radius: 6px;
+  border: 1px solid rgba(139, 69, 19, 0.5);
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #ffffff;
+  text-align: center;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 .menu-buttons {

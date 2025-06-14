@@ -4,7 +4,7 @@
     <div class="status-bar" style="{{ responsiveStyles.statusBar }}">
       <div class="status-item status-left">
         <text class="status-label" style="{{ responsiveStyles.statusLabel }}">殖民者:</text>
-        <text class="status-value" style="{{ responsiveStyles.statusValue }}">{{ (colonistData || currentCharacter) ? (colonistData || currentCharacter).name : '未知' }}</text>
+        <text class="status-value" style="{{ responsiveStyles.statusValue }}">殖民地</text>
       </div>
       <div class="status-item status-center">
         <text class="status-label" style="{{ responsiveStyles.statusLabel }}">第{{ currentDay }}天</text>
@@ -70,40 +70,27 @@
                      onerror="handleImageError">
               </image>
               
-              <!-- 玩家角色 -->
-              <div class="player-character" 
+              <!-- 飞船降落动画 -->
+              <div class="landing-animation-container" 
                    show="{{ playerPosition && playerPosition.x === colIndex && playerPosition.y === rowIndex }}">
-                <!-- 人物身体 -->
-                <image class="player-body" 
-                       src="{{ characterModel.bodyPath }}" 
-                       show="{{ characterModel.bodyPath }}"
+                <!-- 运输舱（飞行状态） -->
+                <image class="transport-pod" 
+                       src="/common/world/WorldObjects/TravelingTransportPods.png" 
+                       show="{{ showTransportPod }}"
+                       style="{{ transportPodStyle }}"
                        onerror="handleImageError">
                 </image>
                 
-                <!-- 人物头部 -->
-                <image class="player-head" 
-                       src="{{ characterModel.headPath }}" 
-                       show="{{ characterModel.headPath }}"
+                <!-- 城镇（降落后） -->
+                <image class="town-settlement" 
+                       src="/common/world/WorldObjects/Town.png" 
+                       show="{{ showTownSettlement }}"
+                       style="{{ townSettlementStyle }}"
                        onerror="handleImageError">
                 </image>
-                
-                <!-- 人物头发 -->
-                <image class="player-hair" 
-                       src="{{ characterModel.hairPath }}" 
-                       show="{{ characterModel.hairPath && characterModel.hairPath !== '无' }}"
-                       onerror="handleImageError">
-                </image>
-                
-                <!-- 人物胡须 -->
-                <image class="player-beard" 
-                       src="{{ characterModel.beardPath }}" 
-                       show="{{ characterModel.beardPath && characterModel.beardPath !== '无' }}"
-                       onerror="handleImageError">
-                </image>
-                
-                <!-- 备用文本符号（图片加载失败时显示） -->
-                <text class="character-symbol" show="{{ !characterModel.bodyPath }}">@</text>
               </div>
+              
+
             </div>
           </div>
         </div>
@@ -146,7 +133,6 @@
 
 <script>
 import router from "@system.router"
-import humanDisplay from "../../common/humanDisplay.js"
 import saveManager from "../../common/saveManager.js"
 import terrainGenerator from "../../common/terrainGenerator.js"
 import responsiveManager from "../../common/responsiveManager.js"
@@ -199,34 +185,23 @@ export default {
       object: null
     },
     
-    // 人物模型相关数据
-    currentCharacter: null,
-    colonistData: null, // 解析后的殖民者数据
-    narratorData: null, // 讲述人数据
-    storyData: null, // 故事数据
-    currentDirection: 'south',
+
     
     // 调试信息控制
     showDebugInfo: true, // 显示调试信息
     debugTimer: null, // 调试信息定时器
     
+    // 降落动画控制
+    showTransportPod: false, // 显示运输舱
+    showTownSettlement: false, // 显示城镇
+    transportPodStyle: '', // 运输舱样式
+    townSettlementStyle: '', // 城镇样式
+    animationInProgress: false, // 动画进行中标志
+    
     // UI控制相关
 
 
-    characterPaths: {
-      body: 'common/human/bodies/Naked_Male_south.png',
-      head: 'common/human/heads/Male/Male_Average_Normal_south.png',
-      hair: 'common/human/hairs/Decent_south.png',
-      beard: 'common/human/beards/BeardMoustache_south.png'
-    },
-    
-    // 人物模型数据（用于模板绑定）
-    characterModel: {
-      bodyPath: '',
-      headPath: '',
-      hairPath: '',
-      beardPath: ''
-    }
+
   },
   
   onInit() {
@@ -252,11 +227,7 @@ export default {
         // 执行必要的初始化步骤（存档加载后仍需要这些）
         console.log('🔧 执行存档加载后的必要初始化...')
         
-        // 初始化角色系统（如果存档中有角色数据）
-        if (gameData.currentCharacter) {
-          this.initializeCharacter(gameData.currentCharacter)
-          console.log('✅ 角色系统重新初始化完成')
-        }
+
         
         // 初始化游戏设置
         this.initializeGameSettings()
@@ -397,9 +368,7 @@ export default {
       this.initializeResources()
       console.log('✅ 资源系统初始化完成')
       
-      // 初始化人物模型（使用传入的角色数据）
-      this.initializeCharacter(colonistData)
-      console.log('✅ 角色系统初始化完成')
+
       
       // 加载预生成的地图数据或生成新地图
       this.initializeTerrain()
@@ -436,6 +405,9 @@ export default {
       
       // 启动调试信息定时器（10秒后隐藏）
       this.startDebugInfoTimer()
+      
+      // 播放飞船降落动画
+      this.playLandingAnimation()
       
       console.log('🎉 游戏初始化全部完成！')
     } catch (error) {
@@ -1182,7 +1154,6 @@ export default {
     const isPlayer = this.playerPosition.x === x && this.playerPosition.y === y
     if (isPlayer) {
       console.log(`🎯 玩家位置匹配: (${x},${y}) === (${this.playerPosition.x},${this.playerPosition.y})`)
-      console.log('👤 人物模型路径状态:', this.characterPaths)
     }
     return isPlayer
   },
@@ -1291,16 +1262,14 @@ export default {
     
     try {
       const gameData = this.getGameData()
-      const colonistName = this.colonistData?.name || this.currentCharacter?.name || '未知'
-      const saveName = `初始存档_${colonistName}_${new Date().toLocaleString()}`
+      const saveName = `初始存档_${new Date().toLocaleString()}`
       
       console.log('📊 游戏数据准备完成:', {
         gameId: gameData.gameId,
-        colonistName: colonistName,
         currentDay: gameData.currentDay,
         currentSeason: gameData.currentSeason,
         resourcesCount: Object.keys(gameData.resources || {}).length,
-        hasCharacter: !!gameData.currentCharacter,
+
         hasSettings: !!gameData.gameSettings
       })
       
@@ -1313,98 +1282,6 @@ export default {
       })
     } catch (error) {
       console.log('❌ 创建初始存档时发生异常:', error.message)
-    }
-  },
-  
-  // 人物模型相关方法
-  initializeCharacter(colonistData) {
-    // 使用传入的角色数据
-    if (colonistData && colonistData.characterPaths) {
-      this.characterPaths = { ...colonistData.characterPaths }
-      this.currentCharacter = colonistData
-      // 更新characterModel数据
-      this.characterModel = {
-        bodyPath: this.characterPaths.body || '',
-        headPath: this.characterPaths.head || '',
-        hairPath: this.characterPaths.hair || '',
-        beardPath: this.characterPaths.beard || ''
-      }
-      console.log('✅ 使用传入的角色数据和路径')
-    } else if (colonistData) {
-      // 如果有角色数据但没有路径，重新生成路径
-      this.currentCharacter = colonistData
-      this.generateCharacterPaths()
-      console.log('✅ 使用传入的角色数据，重新生成路径')
-    } else {
-      // 生成默认角色
-      this.currentCharacter = humanDisplay.generateRandomHumanConfig()
-      this.updateCharacterPaths()
-      console.log('⚠️ 使用默认角色数据')
-    }
-    
-    // 详细日志：打印人物模型资源路径
-    console.log('🧑 初始化角色完成:', {
-      name: this.currentCharacter?.name,
-      gender: this.currentCharacter?.gender,
-      bodyType: this.currentCharacter?.bodyType,
-      hair: this.currentCharacter?.hair
-    })
-    
-    console.log('👤 人物模型资源路径检查:')
-    if (this.characterPaths) {
-      console.log('🎭 身体路径:', this.characterPaths.body || '无')
-      console.log('👤 头部路径:', this.characterPaths.head || '无')
-      console.log('💇 头发路径:', this.characterPaths.hair || '无')
-      console.log('🧔 胡须路径:', this.characterPaths.beard || '无')
-    } else {
-      console.log('❌ 人物模型路径未设置')
-    }
-  },
-  
-  // 生成角色路径
-  generateCharacterPaths() {
-    if (!this.currentCharacter) return
-    
-    const character = this.currentCharacter
-    this.characterPaths = {
-      body: `/common/human/bodies/${character.bodyType || 'Naked_Male'}_south.png`,
-      head: character.gender === 'female' 
-        ? '/common/human/heads/Female/Female_Average_Normal_south.png'
-        : '/common/human/heads/Male/Male_Average_Normal_south.png',
-      hair: character.hair && character.hair !== 'Shaved' 
-        ? `/common/human/haris/${character.hair}_south.png` 
-        : '',
-      beard: character.beard 
-        ? `/common/human/beards/${character.beard}_south.png` 
-        : ''
-    }
-    
-    // 同时更新characterModel数据供模板使用
-    this.characterModel = {
-      bodyPath: this.characterPaths.body || '',
-      headPath: this.characterPaths.head || '',
-      hairPath: this.characterPaths.hair || '',
-      beardPath: this.characterPaths.beard || ''
-    }
-    
-    console.log('🔧 生成的角色路径:', this.characterPaths)
-    console.log('🎭 生成的人物模型数据:', this.characterModel)
-  },
-  
-  updateCharacterPaths() {
-    // 更新人物各部件的图片路径
-    if (this.currentCharacter) {
-      this.characterPaths = humanDisplay.getHumanPartsPaths(this.currentCharacter, this.currentDirection)
-      
-      // 同时更新characterModel数据供模板使用
-      this.characterModel = {
-        bodyPath: this.characterPaths.body || '',
-        headPath: this.characterPaths.head || '',
-        hairPath: this.characterPaths.hair || '',
-        beardPath: this.characterPaths.beard || ''
-      }
-      
-      console.log('🎭 更新人物模型数据:', this.characterModel)
     }
   },
   
@@ -1468,7 +1345,7 @@ export default {
       gameSpeed: this.gameSpeed,
       
       // 配置数据
-      colonist: this.colonistData || this.colonist,
+
       narrator: this.narrator,
       story: this.story,
       gameSettings: this.gameSettings,
@@ -1486,10 +1363,7 @@ export default {
       playerPosition: { ...this.playerPosition },
       currentTileInfo: { ...this.currentTileInfo },
       
-      // 角色信息
-      currentCharacter: this.currentCharacter,
-      currentDirection: this.currentDirection,
-      characterPaths: { ...this.characterPaths },
+
       
       // 存档元数据
       saveVersion: '1.0.0',
@@ -1508,7 +1382,6 @@ export default {
     
     console.log('📊 接收到的存档数据:', {
       gameId: gameData.gameId,
-      hasCharacter: !!gameData.currentCharacter,
       hasResources: !!gameData.resources,
       hasSettings: !!gameData.gameSettings,
       hasTerrain: !!gameData.terrainGrid,
@@ -1651,13 +1524,7 @@ export default {
       
       console.log('✅ 地形和位置信息加载完成')
       
-      // 角色信息
-      this.currentCharacter = gameData.currentCharacter || null
-      this.currentDirection = gameData.currentDirection || 'south'
-      this.characterPaths = gameData.characterPaths || this.characterPaths
-      if (this.currentCharacter) {
-        console.log('✅ 角色数据加载完成:', this.currentCharacter.name)
-      }
+
       
       // 重新设置地形生成器状态
       if (this.terrainGrid.length > 0) {
@@ -1731,9 +1598,7 @@ export default {
   
   // 辅助显示方法
   getTraitsText() {
-    const character = this.colonistData || this.currentCharacter
-    if (!character || !character.traits) return ''
-    return character.traits.map(trait => trait.name).join(', ')
+    return ''
   },
   
   getDifficultyText(difficulty) {
@@ -1924,17 +1789,7 @@ export default {
   validateCharacterRendering() {
     console.log('👤 人物模型渲染验证开始...')
     
-    if (!this.characterPaths) {
-      console.error('❌ characterPaths未定义')
-      return
-    }
-    
-    console.log('🎭 人物模型路径状态:', {
-      身体路径: this.characterPaths.body || '无',
-      头部路径: this.characterPaths.head || '无',
-      头发路径: this.characterPaths.hair || '无',
-      胡须路径: this.characterPaths.beard || '无'
-    })
+
     
     // 检查玩家位置是否有效
     const playerX = this.playerPosition?.x
@@ -2154,30 +2009,104 @@ export default {
         console.log('  4. 资源未正确打包到build目录')
       }
       
-      // 如果是人物模型图片加载失败，尝试使用默认图片
-      if (imageSrc.includes('/common/human/')) {
-        console.log('🔄 人物模型图片加载失败，尝试使用默认路径')
-        
-        // 根据图片类型设置默认路径
-        if (imageClass === 'player-body') {
-          event.target.src = 'common/human/bodies/Naked_Male_south.png'
-          console.log('🎭 使用默认身体图片')
-        } else if (imageClass === 'player-head') {
-          event.target.src = 'common/human/heads/Male/Male_Average_Normal_south.png'
-          console.log('👤 使用默认头部图片')
-        } else if (imageClass === 'player-hair') {
-          console.log('💇 头发图片加载失败，隐藏显示')
-          // 使用show属性控制显示隐藏，而不是直接操作style
-        } else if (imageClass === 'player-beard') {
-          console.log('🧔 胡须图片加载失败，隐藏显示')
-          // 使用show属性控制显示隐藏，而不是直接操作style
-        }
-      } else {
+      {
         // 图片加载失败时的处理
         console.log('🖼️ 图片加载失败，但不直接操作style属性')
       }
     } catch (error) {
       console.log('❌ handleImageError函数执行异常:', error.message)
+    }
+  },
+  
+  // 播放飞船降落动画
+  playLandingAnimation() {
+    try {
+      console.log('🚀 开始播放飞船降落动画...')
+      
+      // 设置动画进行中标志
+      this.animationInProgress = true
+      
+      // 第一阶段：显示运输舱从空中飞下
+      this.showTransportPod = true
+      this.showTownSettlement = false
+      
+      // 设置运输舱初始位置（空中）
+      this.transportPodStyle = `
+        position: absolute;
+        top: -100px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 64px;
+        height: 64px;
+        z-index: 10;
+        transition: all 2s ease-in;
+      `
+      
+      // 延迟100ms后开始降落动画
+      setTimeout(() => {
+        this.transportPodStyle = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 64px;
+          height: 64px;
+          z-index: 10;
+          transition: all 2s ease-in;
+        `
+      }, 100)
+      
+      // 2.5秒后隐藏运输舱，显示城镇
+      setTimeout(() => {
+        this.showTransportPod = false
+        this.showTownSettlement = true
+        
+        // 设置城镇样式（淡入效果）
+        this.townSettlementStyle = `
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 64px;
+          height: 64px;
+          z-index: 5;
+          opacity: 0;
+          transition: opacity 1s ease-in;
+        `
+        
+        // 延迟100ms后显示城镇
+        setTimeout(() => {
+          this.townSettlementStyle = `
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 64px;
+            height: 64px;
+            z-index: 5;
+            opacity: 1;
+            transition: opacity 1s ease-in;
+          `
+        }, 100)
+        
+        console.log('🏘️ 城镇已建立')
+      }, 2500)
+      
+      // 5秒后结束动画，隐藏所有动画元素
+      setTimeout(() => {
+        this.showTransportPod = false
+        this.showTownSettlement = false
+        this.animationInProgress = false
+        
+        console.log('✅ 飞船降落动画完成')
+      }, 5000)
+      
+    } catch (error) {
+      console.error('❌ 飞船降落动画播放失败:', error)
+      // 出错时重置动画状态
+      this.showTransportPod = false
+      this.showTownSettlement = false
+      this.animationInProgress = false
     }
   },
   
@@ -2393,6 +2322,33 @@ export default {
   padding: 0;
 }
 
+/* 降落动画相关样式 */
+.landing-animation-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.transport-pod {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: 20;
+  pointer-events: none;
+}
+
+.town-settlement {
+  position: absolute;
+  width: 64px;
+  height: 64px;
+  z-index: 10;
+  pointer-events: none;
+}
+
 .tile-container {
   position: relative;
   flex: 1;
@@ -2415,31 +2371,7 @@ export default {
   object-fit: contain;
 }
 
-.player-character {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  width: 100%;
-  height: 100%;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 9;
-}
 
-.character-symbol {
-  color: #00ff00;
-  font-size: 20px;
-  font-weight: bold;
-  text-align: center;
-  background-color: rgba(0, 0, 0, 0.7);
-  border-radius: 50%;
-  width: 24px;
-  height: 24px;
-  line-height: 24px;
-}
 
 
 .bottom-nav {
